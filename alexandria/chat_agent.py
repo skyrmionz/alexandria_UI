@@ -12,7 +12,7 @@ ollama_url = os.getenv('OLLAMA_URL', 'http://ollama:11434')
 
 # Define a simpler prompt that explicitly instructs to keep steps under 10
 template = """
-You are Alexandria. Be friendly, concise, and do not overthink your answers.
+You are Alexandria. Be friendly and do not overthink your answers.
 You have access to the following tools:
 
 {tools}
@@ -27,7 +27,7 @@ Action Result: You know what to do now.
 Thought: You now know the final answer
 Final Answer: This is your final answer to the original question
 
-IMPORTANT: You have 10 thought processes to reach a final answer.
+IMPORTANT: You have 25 thought processes to reach a final answer.
 
 Begin!
 
@@ -83,7 +83,7 @@ agent_executor = AgentExecutor(
     memory=memory,
     verbose=True,
     handle_parsing_errors=True,
-    max_iterations=10         # Try to wrap up in 10 steps
+    max_iterations=25         # Try to wrap up in 10 steps
 )
 
 def get_agent_response(query: str) -> str:
