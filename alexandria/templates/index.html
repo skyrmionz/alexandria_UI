@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Welcome to Alexandria</title>
+  <style>
+    body {
+      background-color: #181818;
+      color: #F1F1F1;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
+    }
+    .container {
+      text-align: center;
+      padding: 2rem;
+      border-radius: 8px;
+      background-color: #444654;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4);
+    }
+    h1 {
+      margin-bottom: 1rem;
+    }
+    p {
+      margin-bottom: 2rem;
+      font-size: 1.2rem;
+    }
+    .button-container {
+      display: flex;
+      justify-content: center;
+      gap: 1rem;
+    }
+    button {
+      background-color: #D09B56;
+      color: #fff;
+      border: none;
+      padding: 1rem 2rem;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 1rem;
+      transition: background-color 0.3s ease;
+    }
+    button:hover {
+      background-color: #dd9941;
+    }
+    a {
+      text-decoration: none;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Welcome to Alexandria</h1>
+    <p>Please choose an option below:</p>
+    <div class="button-container">
+      <a href="/chat"><button>Chat with Alexandria</button></a>
+      <a href="/files"><button>View Database</button></a>
+    </div>
+  </div>
+</body>
+</html>

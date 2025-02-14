@@ -1,0 +1,33 @@
+version: '3.8'
+
+services:
+  qdrant:
+    image: qdrant/qdrant
+    container_name: qdrant
+    ports:
+      - "6333:6333"
+      - "6334:6334"
+
+  ollama:
+    image: ollama/ollama
+    container_name: ollama
+    ports:
+      - "11434:11434"
+    environment:
+      - OLLAMA_HOST=0.0.0.0
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: chat_app
+    ports:
+      - "5000:5000"
+    environment:
+      - QDRANT_HOST=qdrant
+      - QDRANT_PORT=6333
+      - DEEPSEEK_API_KEY=sk-13fa1305bc2c47ea95e7c6e7c3194ce0
+      - OLLAMA_URL=http://ollama:11434
+    depends_on:
+      - qdrant
+      - ollama

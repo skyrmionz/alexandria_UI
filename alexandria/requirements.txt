@@ -1,0 +1,15 @@
+Flask
+langchain
+langchain-community
+qdrant-client
+PyPDF2
+Pillow
+pytesseract
+sentence-transformers
+duckduckgo_search
+google-api-python-client
+google-auth-httplib2
+google-auth-oauthlib
+langchain-deepseek
+langgraph
+langchain-ollama
