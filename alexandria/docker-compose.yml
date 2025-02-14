@@ -9,7 +9,9 @@ services:
       - "6334:6334"
 
   ollama:
-    image: ollama/ollama
+    build:
+      context: .
+      dockerfile: Dockerfile.ollama
     container_name: ollama
     ports:
       - "11434:11434"

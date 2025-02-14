@@ -16,8 +16,6 @@ RUN pip install --upgrade pip && pip install -r requirements.txt
 # Copy application code.
 COPY . .
 
-RUN ollama pull deepseek-r1:latest
-
 EXPOSE 5000
 
 CMD ["python", "app.py"]

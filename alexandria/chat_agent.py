@@ -19,16 +19,15 @@ You have access to the following tools:
 
 Use the following format:
 
-Question: the input question you must answer
+Thought Process #: This is the number of the thought process attempt you're on. You have 10 to reach a Final Answer.
+Query: the user's question or query you must address
 Thought: you should always think about what to do
-Action: the action to take, should be one of [{tool_names}]
-Action Input: the input to the action
-Observation: the result of the action
-... (this Thought/Action/Observation can repeat N times)
-Thought: I now know the final answer
-Final Answer: the final answer to the original question
+Action: the action to take: you can use one or none of these: [{tool_names}]
+Action Result: You know what to do now.
+Thought: You now know the final answer
+Final Answer: This is your final answer to the original question
 
-IMPORTANT: Reach a final answer within 10 steps or fewer.
+IMPORTANT: You have 10 thought processes to reach a final answer.
 
 Begin!
 
@@ -60,7 +59,7 @@ llm = ChatOllama(
     model="deepseek-r1:latest",  # Update if needed
     base_url=ollama_url,
     temperature=0.7,
-    max_tokens=1020
+    max_tokens=1500
 )
 
 # Create memory for conversation context
@@ -84,7 +83,7 @@ agent_executor = AgentExecutor(
     memory=memory,
     verbose=True,
     handle_parsing_errors=True,
-    max_iterations=50         # Try to wrap up in 10 steps
+    max_iterations=10         # Try to wrap up in 10 steps
 )
 
 def get_agent_response(query: str) -> str:
