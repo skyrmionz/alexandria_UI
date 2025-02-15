@@ -1,0 +1,2 @@
+# Dockerfile.qdrant
+FROM qdrant/qdrant:latest

@@ -1,10 +1,19 @@
+# Use the official Ollama base image
 FROM ollama/ollama:latest
 
-# 1) Install psmisc so we have 'killall'
-RUN apt-get update && apt-get install -y psmisc && rm -rf /var/lib/apt/lists/*
+# Install necessary utilities
+RUN apt-get update && apt-get install -y psmisc curl && rm -rf /var/lib/apt/lists/*
 
-# 2) Start Ollama in the background, wait a bit, pull the model, then kill the server
+# Check if Ollama is installed; if not, download and install it
+RUN if ! command -v ollama &> /dev/null; then \
+      echo "Ollama not found. Installing..."; \
+      curl -fsSL https://ollama.com/install.sh | bash; \
+    else \
+      echo "Ollama is already installed."; \
+    fi
+
+# Start Ollama in the background, wait, pull the model, then stop the server
 RUN /bin/bash -c "ollama serve & sleep 5 && ollama pull deepseek-r1:latest && killall ollama"
 
-# 3) At runtime, just run Ollama in server mode (model is already cached)
-CMD ["serve"]
+# Set the command to run Ollama in server mode at runtime
+CMD ["ollama", "serve"]
