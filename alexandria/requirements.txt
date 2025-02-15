@@ -13,3 +13,4 @@ google-auth-oauthlib
 langchain-deepseek
 langgraph
 langchain-ollama
+ollama

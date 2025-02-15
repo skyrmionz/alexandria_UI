@@ -8,9 +8,16 @@ from google_drive_ingestor import ingest_drive_files
 app = Flask(__name__)
 
 # Qdrant configuration
-QDRANT_HOST = os.environ.get("QDRANT_HOST", "qdrant")
+QDRANT_HOST = os.environ.get("QDRANT_HOST", "localhost")
 QDRANT_PORT = int(os.environ.get("QDRANT_PORT", 6333))
 COLLECTION_NAME = "google_drive_docs"
+
+# Initialize Qdrant client
+try:
+    qdrant_client = QdrantClient(host=QDRANT_HOST, port=QDRANT_PORT)
+except Exception as e:
+    print(f"Error connecting to Qdrant: {e}")
+    qdrant_client = None
 
 # ---------------------------
 # Page Routes
@@ -38,7 +45,13 @@ def chat_api():
     user_message = request.form.get("message")
     if not user_message:
         return jsonify({"error": "No message provided"}), 400
-    response = get_agent_response(user_message)
+
+    # Get response from chat agent
+    try:
+        response = get_agent_response(user_message)
+    except Exception as e:
+        return jsonify({"error": f"Failed to get response: {e}"}), 500
+
     return jsonify({"response": response})
 
 # File upload endpoint (supports multiple files)
@@ -50,13 +63,15 @@ def upload():
     if not files:
         return jsonify({"error": "No file selected"}), 400
     for file in files:
-        if file.filename == "":
-            continue  # Skip empty file fields
-        process_uploaded_file(file)
+        if file.filename.strip() == "":
+            return jsonify({"error": "One of the selected files has no filename"}), 400
+        try:
+            process_uploaded_file(file)
+        except Exception as e:
+            return jsonify({"error": f"Failed to process file {file.filename}: {e}"}), 500
     return jsonify({"message": "Files processed and added to the knowledge base"})
 
-# Google Drive ingestion endpoint.
-# If a folder_id is provided, only that folder is processed; otherwise, the entire drive.
+# Google Drive ingestion endpoint
 @app.route("/ingest_drive", methods=["POST"])
 def ingest_drive():
     folder_id = request.form.get("folder_id")
@@ -64,28 +79,29 @@ def ingest_drive():
         ingest_drive_files(folder_id)  # folder_id is optional
         return jsonify({"message": "Google Drive ingestion started."})
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        return jsonify({"error": str(e), "suggestion": "Ensure folder ID is correct and accessible"}), 500
 
-# Endpoint to list uploaded files from Qdrant.
+# Endpoint to list uploaded files from Qdrant
 @app.route("/list_files", methods=["GET"])
 def list_files():
-    client = QdrantClient(host=QDRANT_HOST, port=QDRANT_PORT)
+    if not qdrant_client:
+        return jsonify({"files": [], "message": "Qdrant client is not initialized."}), 500
     try:
-        collections = client.get_collections().collections
+        collections = qdrant_client.get_collections().collections
     except Exception as e:
-        return jsonify({"files": [], "message": f"Error accessing Qdrant: {e}"})
-    
+        return jsonify({"files": [], "message": f"Error accessing Qdrant: {e}"}), 500
+
     if COLLECTION_NAME not in [col.name for col in collections]:
         return jsonify({
             "files": [],
-            "message": "The collection 'google_drive_docs' does not exist yet. Please upload files first."
+            "message": f"The collection '{COLLECTION_NAME}' does not exist yet. Please upload files first."
         })
     try:
-        scroll_result = client.scroll(collection_name=COLLECTION_NAME, limit=100)
+        scroll_result = qdrant_client.scroll(collection_name=COLLECTION_NAME, limit=100)
         file_names = [point.payload.get("source", "Unknown") for point in scroll_result.points]
         return jsonify({"files": file_names})
     except Exception as e:
-        return jsonify({"files": [], "message": f"Error retrieving files: {e}"})
+        return jsonify({"files": [], "message": f"Error retrieving files: {e}"}), 500
 
 # ---------------------------
 # Run the App
