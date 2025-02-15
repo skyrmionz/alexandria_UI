@@ -16,4 +16,4 @@ RUN if ! command -v ollama &> /dev/null; then \
 RUN /bin/bash -c "ollama serve & sleep 5 && ollama pull deepseek-r1:latest && killall ollama"
 
 # Set the command to run Ollama in server mode at runtime
-CMD ["ollama", "serve"]
+ENTRYPOINT ["ollama", "serve"]
