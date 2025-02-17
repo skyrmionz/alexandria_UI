@@ -8,6 +8,8 @@ from google_drive_ingestor import ingest_drive_files
 app = Flask(__name__)
 
 # Qdrant configuration
+OLLAMA_HOST = os.environ.get("OLLAMA_HOST", "localhost")
+OLLAMA_PORT = int(os.environ.get("OLLAMA_PORT", 11434))
 QDRANT_HOST = os.environ.get("QDRANT_HOST", "localhost")
 QDRANT_PORT = int(os.environ.get("QDRANT_PORT", 6333))
 COLLECTION_NAME = "google_drive_docs"
