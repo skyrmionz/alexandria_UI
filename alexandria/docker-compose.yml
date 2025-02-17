@@ -29,7 +29,6 @@ services:
     environment:
       - QDRANT_HOST=qdrant
       - QDRANT_PORT=6333
-      - DEEPSEEK_API_KEY=sk-13fa1305bc2c47ea95e7c6e7c3194ce0
       # Update the Ollama URL to use the new RunPod DNS name
       - OLLAMA_URL=https://cjalmexcy9f8qs-11434.proxy.runpod.net/
     depends_on:
