@@ -1,4 +1,3 @@
-# chat_agent.py
 import os
 from langchain.agents import Tool, AgentExecutor, create_react_agent
 from langchain_ollama import ChatOllama
@@ -7,29 +6,26 @@ from tools.web_search_tool import web_search_tool
 from langchain.memory import ConversationBufferMemory
 from langchain.prompts import PromptTemplate
 
-# Retrieve the Ollama URL from environment variables
-ollama_url = os.getenv('OLLAMA_URL', 'http://ollama:11434')
+# Retrieve the Ollama URL from environment variables, defaulting to the new RunPod DNS address
+ollama_url = os.getenv('OLLAMA_URL', 'https://tepm2e161hnrjt-11434.proxy.runpod.net/')
 
 # Define a simpler prompt that explicitly instructs to keep steps under 10
 template = """
-You are Alexandria. Be friendly and do not overthink your answers.
-You have access to the following tools:
+You are Alexandria. Be friendly and keep your responses to 1000 characters.
+You have access to the following tools, which grabs information from the knowledge base:
 
 {tools}
 
-Use the following format:
+Your response should have two sections:
+1. <think> ... </think> - a detailed chain-of-thought that is not visible to the user.
+2. Final Answer: [Your concise, HTML-stylized answer based solely on retrieved knowledge]
 
-Thought Process #: This is the number of the thought process attempt you're on. You have 10 to reach a Final Answer.
-Query: the user's question or query you must address
-Thought: you should always think about what to do
-Action: the action to take: you can use one or none of these: [{tool_names}]
-Action Result: You know what to do now.
-Thought: You now know the final answer
-Final Answer: This is your final answer to the original question
+ALWAYS use these actions: [{tool_names}] - ONLY use information found in the knowledge base for your answer
+ALWAYS stylize your text with HTML tags to make it more readable. (Example: <b> bolded text</b>)
 
-IMPORTANT: You have 25 thought processes to reach a final answer.
+IMPORTANT: You only have 10 tries to get to a final answer. 
 
-Begin!
+Before producing your final answer, ensure that the information is directly supported by the retrieved knowledge base data.
 
 Question: {input}
 {agent_scratchpad}
@@ -45,21 +41,21 @@ tools = [
     Tool(
         name="KnowledgeBaseSearch",
         func=knowledge_base_search_tool,
-        description="Searches the local knowledge base for relevant information."
+        description="Searches the knowledge base for relevant information to ground your response."
     ),
-    Tool(
-        name="WebSearch",
-        func=web_search_tool,
-        description="Performs a web search using DuckDuckGo."
-    )
+    #Tool(
+    #    name="WebSearch",
+    #    func=web_search_tool,
+    #    description="Performs a web search using DuckDuckGo."
+    #)
 ]
 
 # Instantiate the ChatOllama model
 llm = ChatOllama(
     model="deepseek-r1:latest",  # Update if needed
     base_url=ollama_url,
-    temperature=0.7,
-    max_tokens=1500
+    temperature=0.6,
+    max_tokens=32000,
 )
 
 # Create memory for conversation context
@@ -83,7 +79,7 @@ agent_executor = AgentExecutor(
     memory=memory,
     verbose=True,
     handle_parsing_errors=True,
-    max_iterations=25         # Try to wrap up in 10 steps
+    max_iterations=10
 )
 
 def get_agent_response(query: str) -> str:

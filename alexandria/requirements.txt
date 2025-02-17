@@ -14,3 +14,4 @@ langchain-deepseek
 langgraph
 langchain-ollama
 ollama
+pandas

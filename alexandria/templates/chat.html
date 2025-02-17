@@ -4,144 +4,145 @@
   <meta charset="UTF-8">
   <title>Chat with Alexandria</title>
   <style>
-/* Base Reset */
-* {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
-}
-body {
-  background-color: #181818;
-  color: #F1F1F1;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-  display: flex;
-  height: 100vh;
-}
-
-/* Sidebar */
-.sidebar {
-  background-color: #222222;
-  width: 220px;
-  padding: 20px;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-}
-
-.menu {
-  list-style: none;
-  margin-top: 40px;
-  text-align: left;
-}
-.menu li {
-  margin-bottom: 15px;
-}
-.menu li a {
-  display: block;
-  text-decoration: none;
-  font-size: 18px;
-  font-weight: bold;
-  color: #FFFFFF;
-  padding: 10px;
-  border-radius: 10px;
-  transition: background 0.3s, box-shadow 0.3s;
-}
-.menu li.selected a {
-  color: #D09B56;
-  background-color: #4F4F4F;
-  box-shadow: 0 0 10px #4F4F4F;
-}
-
-.sidebar-bottom {
-  text-align: center;
-}
-.sidebar-bottom img {
-  max-width: 100%;
-  height: auto;
-  display: block;
-  margin: 0 auto;
-}
-
-/* Main Chat Area */
-.main-content {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center; /* Center content horizontally */
-  justify-content: space-between;
-  padding-bottom: 20px;
-}
-
-/* Chat Wrapper */
-.chat-wrapper {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  width: 100%;
-  max-width: 750px;
-  height: 80vh;
-  padding-top: 20px;
-}
-
-/* Messages Container */
-#messages {
-  flex-grow: 1;
-  width: 100%;
-  overflow-y: auto;
-  display: flex;
-  flex-direction: column;
-  padding-bottom: 40px;
-}
-
-/* Message Bubbles */
-.message {
-  max-width: 70%;
-  padding: 12px 16px;
-  border-radius: 15px;
-  word-wrap: break-word;
-  white-space: pre-wrap;
-  margin-bottom: 10px;
-}
-
-/* User Message (Right-Aligned) */
-.user-message {
-  background-color: #222222;
-  align-self: flex-end;
-  text-align: right;
-}
-
-/* AI Message (Left-Aligned) */
-.agent-message {
-  background-color: #333333;
-  align-self: flex-start;
-  text-align: left;
-}
-
-/* Thinking Indicator */
-.thinking-indicator {
-  text-align: left;
-  align-self: flex-start;
-  font-size: 14px;
-  color: #929292;
-}
-
-/* Input Container */
-#input-container {
-  width: 100%;
-  max-width: 750px;
-  padding: 10px;
-  background-color: transparent;
-  display: flex;
-  justify-content: center;
-  position: fixed;
-  bottom: 20px;
-}
-
-
+    /* Base Reset */
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    body {
+      background-color: #181818;
+      color: #F1F1F1;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      display: flex;
+      height: 100vh;
+    }
+    
+    /* Sidebar */
+    .sidebar {
+      background-color: #222222;
+      width: 220px;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+    
+    .menu {
+      list-style: none;
+      margin-top: 40px;
+      text-align: left;
+    }
+    .menu li {
+      margin-bottom: 15px;
+    }
+    .menu li a {
+      display: block;
+      text-decoration: none;
+      font-size: 18px;
+      font-weight: bold;
+      color: #FFFFFF;
+      padding: 10px;
+      border-radius: 10px;
+      transition: background 0.3s, box-shadow 0.3s;
+    }
+    .menu li.selected a {
+      color: #D09B56;
+      background-color: #4F4F4F;
+      box-shadow: 0 0 10px #4F4F4F;
+    }
+    
+    .sidebar-bottom {
+      text-align: center;
+    }
+    .sidebar-bottom img {
+      max-width: 100%;
+      height: auto;
+      display: block;
+      margin: 0 auto;
+    }
+    
+    /* Main Chat Area */
+    .main-content {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: space-between;
+      padding-bottom: 20px;
+    }
+    
+    /* Chat Wrapper */
+    .chat-wrapper {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      width: 100%;
+      max-width: 750px;
+      height: 80vh;
+      padding-top: 20px;
+    }
+    
+    /* Messages Container */
+    #messages {
+      flex-grow: 1;
+      width: 100%;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      padding-bottom: 40px;
+    }
+    
+    /* Message Bubbles */
+    .message {
+      max-width: 70%;
+      padding: 12px 16px;
+      border-radius: 15px;
+      word-wrap: break-word;
+      white-space: pre-wrap;
+      margin-bottom: 10px;
+    }
+    
+    /* User Message (Right-Aligned) */
+    .user-message {
+      background-color: #222222;
+      align-self: flex-end;
+      text-align: right;
+    }
+    
+    /* Agent Message (Left-Aligned, no bubble styling) */
+    .agent-message {
+      background-color: transparent;
+      border: none;
+      align-self: flex-start;
+      text-align: left;
+      padding: 0; /* Remove extra padding if desired */
+    }
+    
+    /* Thinking Indicator */
+    .thinking-indicator {
+      text-align: left;
+      align-self: flex-start;
+      font-size: 14px;
+      color: #929292;
+    }
+    
+    /* Input Container */
+    #input-container {
+      width: 100%;
+      max-width: 750px;
+      padding: 10px;
+      background-color: transparent;
+      display: flex;
+      justify-content: center;
+      position: fixed;
+      bottom: 20px;
+    }
+    
     /* Input Box */
     #message-input {
       width: 100%;
-      height: 140px; /* More space for typing */
+      height: 140px;
       padding: 20px;
       font-size: 16px;
       border: none;
@@ -150,6 +151,23 @@ body {
       color: #FFFFFF;
       outline: none;
       resize: none;
+    }
+    
+    /* Collapsible Thought Process */
+    .thought-toggle {
+      color: #D09B56;
+      cursor: pointer;
+      margin-top: 5px;
+      font-size: 14px;
+    }
+    .thought-content {
+      background-color: #2a2a2a;
+      padding: 10px;
+      margin-top: 5px;
+      border-radius: 10px;
+      display: none;
+      font-size: 13px;
+      color: #CCCCCC;
     }
   </style>
 </head>
@@ -182,15 +200,15 @@ body {
     let isWaiting = false;
     let thinkingInterval;
 
-    // Typing Animation
+    // Typing Animation: reduced delay for faster rendering
     function typeText(text, container, callback) {
-      container.text("");
+      container.html("");  // use html() to allow styling
       let i = 0;
       function typeNext() {
         if (i < text.length) {
           container.append(text.charAt(i));
           i++;
-          setTimeout(typeNext, 30);
+          setTimeout(typeNext, 10);  // faster delay
         } else if (callback) {
           callback();
         }
@@ -211,6 +229,12 @@ body {
     function stopThinkingIndicator() {
       clearInterval(thinkingInterval);
       $(".thinking-indicator").remove();
+    }
+
+    // Toggle for Thought Process
+    function toggleThoughtProcess(toggleElement) {
+      const content = toggleElement.next(".thought-content");
+      content.slideToggle();
     }
 
     // Send Message on Enter (Shift+Enter for new line)
@@ -239,13 +263,39 @@ body {
       $.post("/chat_api", { message: message }, function(data) {
         stopThinkingIndicator();
         let agentOutput = data.response;
-        let finalAnswer = agentOutput.replace(/<think>[\s\S]*?<\/think>/g, '').trim();
 
-        const agentMsg = $("<div class='message agent-message'></div>").text(finalAnswer);
+        // Extract <think>...</think> block if present
+        let thoughtProcess = "";
+        const thinkRegex = /<think>([\s\S]*?)<\/think>/i;
+        const match = agentOutput.match(thinkRegex);
+        if (match) {
+          thoughtProcess = match[1].trim();
+          // Remove the <think> block from the final answer
+          agentOutput = agentOutput.replace(thinkRegex, "").trim();
+        }
+        
+        // Remove any leading asterisks from the response
+        agentOutput = agentOutput.replace(/^\*+/, "").trim();
+
+        // Append Agent Message (without bubble styling)
+        const agentMsg = $("<div class='message agent-message'></div>").html(agentOutput);
         messagesContainer.append(agentMsg);
         messagesContainer.animate({ scrollTop: messagesContainer.prop("scrollHeight") }, 500);
         
-        typeText(finalAnswer, agentMsg, function() {
+        // If there's a thought process, add a collapsible section
+        if (thoughtProcess) {
+          const thoughtToggle = $("<div class='thought-toggle'>See my thought process</div>");
+          const thoughtContent = $("<div class='thought-content'></div>").html(thoughtProcess);
+          // Toggle on click
+          thoughtToggle.on("click", function() {
+            toggleThoughtProcess($(this));
+          });
+          messagesContainer.append(thoughtToggle);
+          messagesContainer.append(thoughtContent);
+        }
+        
+        // Type out the agent message quickly
+        typeText(agentOutput, agentMsg, function() {
           messageInput.prop("disabled", false);
           messageInput.focus();
           isWaiting = false;

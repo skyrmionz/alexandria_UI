@@ -8,15 +8,16 @@ services:
       - "6333:6333"
       - "6334:6334"
 
-  ollama:
-    build:
-      context: .
-      dockerfile: Dockerfile.ollama
-    container_name: ollama
-    ports:
-      - "11434:11434"
-    environment:
-      - OLLAMA_HOST=0.0.0.0
+#  ollama:
+ #   build:
+  #    context: .
+   #   dockerfile: Dockerfile.ollama
+    # Update container name to the new Pod ID so the RunPod global network assigns the DNS: https://tepm2e161hnrjt-11434.runpod.net
+    #container_name: tepm2e161hnrjt
+    #ports:
+    # - "11434:11434"
+    #environment:
+    #  - OLLAMA_HOST=0.0.0.0
 
   app:
     build:
@@ -29,7 +30,8 @@ services:
       - QDRANT_HOST=qdrant
       - QDRANT_PORT=6333
       - DEEPSEEK_API_KEY=sk-13fa1305bc2c47ea95e7c6e7c3194ce0
-      - OLLAMA_URL=http://ollama:11434
+      # Update the Ollama URL to use the new RunPod DNS name
+      - OLLAMA_URL=https://tepm2e161hnrjt-11434.proxy.runpod.net/
     depends_on:
       - qdrant
-      - ollama
+      #- ollama
