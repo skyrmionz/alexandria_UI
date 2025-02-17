@@ -9,7 +9,7 @@ app = Flask(__name__)
 
 # Qdrant configuration
 # Set OLLAMA_HOST default to the new RunPod internal DNS address
-OLLAMA_HOST = os.environ.get("OLLAMA_HOST", "https://tepm2e161hnrjt-11434.proxy.runpod.net/")
+OLLAMA_HOST = os.environ.get("OLLAMA_HOST", "https://cjalmexcy9f8qs-11434.proxy.runpod.net/")
 OLLAMA_PORT = int(os.environ.get("OLLAMA_PORT", 11434))
 QDRANT_HOST = os.environ.get("QDRANT_HOST", "localhost")
 QDRANT_PORT = int(os.environ.get("QDRANT_PORT", 6333))

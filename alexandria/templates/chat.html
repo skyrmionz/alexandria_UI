@@ -78,7 +78,7 @@
       flex-direction: column;
       align-items: flex-start;
       width: 100%;
-      max-width: 750px;
+      max-width: 900px;  /* Wider chat area */
       height: 80vh;
       padding-top: 20px;
     }
@@ -93,21 +93,39 @@
       padding-bottom: 40px;
     }
     
+    /* Apple-like Scrollbar */
+    #messages::-webkit-scrollbar {
+      width: 8px;
+    }
+    #messages::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    #messages::-webkit-scrollbar-thumb {
+      background-color: rgba(255, 255, 255, 0.3);
+      border-radius: 4px;
+    }
+    /* Firefox scrollbar */
+    #messages {
+      scrollbar-width: thin;
+      scrollbar-color: rgba(255, 255, 255, 0.3) transparent;
+    }
+    
     /* Message Bubbles */
     .message {
       max-width: 70%;
-      padding: 12px 16px;
+      padding: 16px 20px;  /* Increased padding for more space */
       border-radius: 15px;
       word-wrap: break-word;
       white-space: pre-wrap;
-      margin-bottom: 10px;
+      margin-bottom: 15px; /* More space between messages */
+      font-size: 18px;     /* Chat messages use 18px */
     }
     
-    /* User Message (Right-Aligned) */
+    /* User Message: container right-aligned, text inside left-aligned */
     .user-message {
       background-color: #222222;
       align-self: flex-end;
-      text-align: right;
+      text-align: left;
     }
     
     /* Agent Message (Left-Aligned, no bubble styling) */
@@ -116,21 +134,21 @@
       border: none;
       align-self: flex-start;
       text-align: left;
-      padding: 0; /* Remove extra padding if desired */
+      padding: 0;
     }
     
     /* Thinking Indicator */
     .thinking-indicator {
       text-align: left;
       align-self: flex-start;
-      font-size: 14px;
+      font-size: 16px;  /* Slightly smaller to match input area */
       color: #929292;
     }
     
     /* Input Container */
     #input-container {
       width: 100%;
-      max-width: 750px;
+      max-width: 900px;  /* Wider input container */
       padding: 10px;
       background-color: transparent;
       display: flex;
@@ -144,7 +162,7 @@
       width: 100%;
       height: 140px;
       padding: 20px;
-      font-size: 16px;
+      font-size: 16px;  /* 16px for the typing area text */
       border: none;
       border-radius: 20px;
       background-color: #4F4F4F;
@@ -170,6 +188,8 @@
       color: #CCCCCC;
     }
   </style>
+  <!-- Include Typed.js from CDN for typewriter effect -->
+  <script src="https://cdn.jsdelivr.net/npm/typed.js@2.0.12"></script>
 </head>
 <body>
   <!-- Sidebar -->
@@ -200,26 +220,32 @@
     let isWaiting = false;
     let thinkingInterval;
 
-    // Typing Animation: reduced delay for faster rendering
-    function typeText(text, container, callback) {
-      container.html("");  // use html() to allow styling
-      let i = 0;
-      function typeNext() {
-        if (i < text.length) {
-          container.append(text.charAt(i));
-          i++;
-          setTimeout(typeNext, 10);  // faster delay
-        } else if (callback) {
-          callback();
-        }
-      }
-      typeNext();
+    // Function to scroll the messages container to the bottom
+    function autoScroll() {
+      messagesContainer.animate({ scrollTop: messagesContainer.prop("scrollHeight") }, 500);
     }
 
-    // Thinking Indicator
+    // Typewriter effect for agent messages using Typed.js (faster, inline)
+    function typeAgentMessage(element, text, callback) {
+      element.html(""); // Clear any previous content
+      const typedSpan = $("<span class='typed-text'></span>");
+      element.append(typedSpan);
+      new Typed(typedSpan[0], {
+        strings: [text],
+        typeSpeed: 7,         // Faster typing: 7ms per character
+        showCursor: false,    // Remove the flashing cursor after finish
+        contentType: 'html',
+        onComplete: function() {
+          if (callback) callback();
+        }
+      });
+    }
+
+    // Thinking Indicator with fadeIn effect
     function startThinkingIndicator() {
-      let indicator = $("<div class='thinking-indicator'>Alexandria is thinking</div>");
+      let indicator = $("<div class='thinking-indicator'>Alexandria is thinking</div>").hide();
       messagesContainer.append(indicator);
+      indicator.fadeIn(500, autoScroll);
       let dotCount = 0;
       thinkingInterval = setInterval(() => {
         dotCount = (dotCount + 1) % 4;
@@ -234,7 +260,7 @@
     // Toggle for Thought Process
     function toggleThoughtProcess(toggleElement) {
       const content = toggleElement.next(".thought-content");
-      content.slideToggle();
+      content.slideToggle(autoScroll);
     }
 
     // Send Message on Enter (Shift+Enter for new line)
@@ -249,10 +275,10 @@
       const message = messageInput.val().trim();
       if (!message) return;
       
-      // Append User Message
+      // Append User Message (container right-aligned, text inside left-aligned)
       const userMsg = $("<div class='message user-message'></div>").text(message);
       messagesContainer.append(userMsg);
-      messagesContainer.animate({ scrollTop: messagesContainer.prop("scrollHeight") }, 500);
+      autoScroll();
       
       messageInput.val("");
       messageInput.prop("disabled", true);
@@ -270,42 +296,43 @@
         const match = agentOutput.match(thinkRegex);
         if (match) {
           thoughtProcess = match[1].trim();
-          // Remove the <think> block from the final answer
           agentOutput = agentOutput.replace(thinkRegex, "").trim();
         }
         
-        // Remove any leading asterisks from the response
+        // Remove any leading asterisks
         agentOutput = agentOutput.replace(/^\*+/, "").trim();
 
-        // Append Agent Message (without bubble styling)
-        const agentMsg = $("<div class='message agent-message'></div>").html(agentOutput);
+        // Append Agent Message container for typewriter effect
+        const agentMsg = $("<div class='message agent-message'></div>");
         messagesContainer.append(agentMsg);
-        messagesContainer.animate({ scrollTop: messagesContainer.prop("scrollHeight") }, 500);
+        autoScroll();
+        
+        // Animate the agent's response inline with the typewriter effect
+        typeAgentMessage(agentMsg, agentOutput, function() {
+          messageInput.prop("disabled", false);
+          messageInput.focus();
+          isWaiting = false;
+          autoScroll();
+        });
         
         // If there's a thought process, add a collapsible section
         if (thoughtProcess) {
           const thoughtToggle = $("<div class='thought-toggle'>See my thought process</div>");
           const thoughtContent = $("<div class='thought-content'></div>").html(thoughtProcess);
-          // Toggle on click
           thoughtToggle.on("click", function() {
             toggleThoughtProcess($(this));
           });
           messagesContainer.append(thoughtToggle);
           messagesContainer.append(thoughtContent);
+          autoScroll();
         }
-        
-        // Type out the agent message quickly
-        typeText(agentOutput, agentMsg, function() {
-          messageInput.prop("disabled", false);
-          messageInput.focus();
-          isWaiting = false;
-        });
       }).fail(function() {
         stopThinkingIndicator();
         messagesContainer.append($("<div class='message agent-message'></div>").text("Error getting response."));
         messageInput.prop("disabled", false);
         messageInput.focus();
         isWaiting = false;
+        autoScroll();
       });
     }
   </script>
