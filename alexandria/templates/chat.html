@@ -5,189 +5,112 @@
   <title>Chat with Alexandria</title>
   <style>
     /* Base Reset */
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-    }
-    body {
-      background-color: #181818;
-      color: #F1F1F1;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-      display: flex;
-      height: 100vh;
-    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background-color: #181818; color: #F1F1F1; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; display: flex; height: 100vh; }
     
     /* Sidebar */
-    .sidebar {
+    .sidebar { background-color: #222222; width: 220px; padding: 20px; display: flex; flex-direction: column; justify-content: space-between; }
+    .menu { list-style: none; margin-top: 40px; text-align: left; }
+    .menu li { margin-bottom: 15px; }
+    .menu li a { display: block; white-space: nowrap; text-decoration: none; font-size: 18px; font-weight: bold; color: #FFFFFF; padding: 10px; border-radius: 10px; transition: background 0.3s, box-shadow 0.3s; }
+    .menu li.selected a { color: #D09B56; background-color: #4F4F4F; box-shadow: 0 0 20px #4F4F4F; }
+    .sidebar-bottom { text-align: center; }
+    .sidebar-bottom img { max-width: 100%; height: auto; display: block; margin: 0 auto; }
+    
+    /* Custom Agent Selector Dropdown */
+    .agent-selector {
+      position: absolute;
+      top: 10px;
+      left: 240px;
+      width: 300px;
+      user-select: none;
+    }
+    .agent-selected {
       background-color: #222222;
-      width: 220px;
-      padding: 20px;
+      padding: 10px 15px;
+      border-radius: 8px;
+      cursor: pointer;
       display: flex;
-      flex-direction: column;
+      align-items: center;
       justify-content: space-between;
     }
-    
-    .menu {
-      list-style: none;
-      margin-top: 40px;
-      text-align: left;
-    }
-    .menu li {
-      margin-bottom: 15px;
-    }
-    .menu li a {
-      display: block;
-      text-decoration: none;
-      font-size: 18px;
+    .agent-selected span {
+      font-size: 16px;
       font-weight: bold;
-      color: #FFFFFF;
-      padding: 10px;
-      border-radius: 10px;
-      transition: background 0.3s, box-shadow 0.3s;
     }
-    .menu li.selected a {
-      color: #D09B56;
+    .dropdown-arrow {
+      font-size: 14px;
+    }
+    .agent-dropdown {
+      display: none;
+      background-color: #222222;
+      border-radius: 8px;
+      margin-top: 5px;
+      overflow: hidden;
+    }
+    .agent-option {
+      padding: 10px 15px;
+      cursor: pointer;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-top: 1px solid #4F4F4F;
+    }
+    .agent-option:first-child {
+      border-top: none;
+    }
+    .agent-option:hover {
       background-color: #4F4F4F;
-      box-shadow: 0 0 10px #4F4F4F;
     }
-    
-    .sidebar-bottom {
-      text-align: center;
+    .agent-info {
+      display: flex;
+      flex-direction: column;
     }
-    .sidebar-bottom img {
-      max-width: 100%;
-      height: auto;
-      display: block;
-      margin: 0 auto;
+    .agent-title {
+      font-size: 16px;
+      font-weight: bold;
+    }
+    .agent-desc {
+      font-size: 14px;
+      color: #929292;
+    }
+    .see-details {
+      color: #D09B56;
+      font-size: 14px;
+      text-decoration: underline;
+      margin-left: auto;
+      cursor: pointer;
     }
     
     /* Main Chat Area */
-    .main-content {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: space-between;
-      padding-bottom: 20px;
-    }
+    .main-content { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: space-between; padding-bottom: 20px; }
+    .chat-wrapper { display: flex; flex-direction: column; align-items: flex-start; width: 100%; max-width: 900px; height: 80vh; padding-top: 20px; }
+    #messages { flex-grow: 1; width: 100%; overflow-y: auto; display: flex; flex-direction: column; padding-bottom: 40px; }
+    #messages::-webkit-scrollbar { width: 8px; }
+    #messages::-webkit-scrollbar-track { background: transparent; }
+    #messages::-webkit-scrollbar-thumb { background-color: rgba(255, 255, 255, 0.3); border-radius: 4px; }
+    #messages { scrollbar-width: thin; scrollbar-color: rgba(255, 255, 255, 0.3) transparent; }
+    .message { max-width: 70%; padding: 16px 20px; border-radius: 15px; word-wrap: break-word; white-space: pre-wrap; margin-bottom: 15px; font-size: 18px; }
+    .user-message { background-color: #222222; align-self: flex-end; text-align: left; }
+    .agent-message { background-color: transparent; border: none; align-self: flex-start; text-align: left; padding: 0; }
+    .thinking-indicator { text-align: left; align-self: flex-start; font-size: 16px; color: #929292; }
+    #input-container { width: 100%; max-width: 900px; padding: 10px; background-color: transparent; display: flex; justify-content: center; position: fixed; bottom: 20px; }
+    #message-input { width: 100%; height: 140px; padding: 20px; font-size: 16px; border: none; border-radius: 20px; background-color: #4F4F4F; color: #FFFFFF; outline: none; resize: none; }
     
-    /* Chat Wrapper */
-    .chat-wrapper {
-      display: flex;
-      flex-direction: column;
-      align-items: flex-start;
-      width: 100%;
-      max-width: 900px;  /* Wider chat area */
-      height: 80vh;
-      padding-top: 20px;
-    }
-    
-    /* Messages Container */
-    #messages {
-      flex-grow: 1;
-      width: 100%;
-      overflow-y: auto;
-      display: flex;
-      flex-direction: column;
-      padding-bottom: 40px;
-    }
-    
-    /* Apple-like Scrollbar */
-    #messages::-webkit-scrollbar {
-      width: 8px;
-    }
-    #messages::-webkit-scrollbar-track {
-      background: transparent;
-    }
-    #messages::-webkit-scrollbar-thumb {
-      background-color: rgba(255, 255, 255, 0.3);
-      border-radius: 4px;
-    }
-    /* Firefox scrollbar */
-    #messages {
-      scrollbar-width: thin;
-      scrollbar-color: rgba(255, 255, 255, 0.3) transparent;
-    }
-    
-    /* Message Bubbles */
-    .message {
-      max-width: 70%;
-      padding: 16px 20px;  /* Increased padding for more space */
-      border-radius: 15px;
-      word-wrap: break-word;
-      white-space: pre-wrap;
-      margin-bottom: 15px; /* More space between messages */
-      font-size: 18px;     /* Chat messages use 18px */
-    }
-    
-    /* User Message: container right-aligned, text inside left-aligned */
-    .user-message {
-      background-color: #222222;
-      align-self: flex-end;
-      text-align: left;
-    }
-    
-    /* Agent Message (Left-Aligned, no bubble styling) */
-    .agent-message {
-      background-color: transparent;
-      border: none;
-      align-self: flex-start;
-      text-align: left;
-      padding: 0;
-    }
-    
-    /* Thinking Indicator */
-    .thinking-indicator {
-      text-align: left;
-      align-self: flex-start;
-      font-size: 16px;  /* Slightly smaller to match input area */
-      color: #929292;
-    }
-    
-    /* Input Container */
-    #input-container {
-      width: 100%;
-      max-width: 900px;  /* Wider input container */
-      padding: 10px;
-      background-color: transparent;
-      display: flex;
-      justify-content: center;
-      position: fixed;
-      bottom: 20px;
-    }
-    
-    /* Input Box */
-    #message-input {
-      width: 100%;
-      height: 140px;
-      padding: 20px;
-      font-size: 16px;  /* 16px for the typing area text */
-      border: none;
-      border-radius: 20px;
-      background-color: #4F4F4F;
-      color: #FFFFFF;
-      outline: none;
-      resize: none;
-    }
-    
-    /* Collapsible Thought Process */
-    .thought-toggle {
-      color: #D09B56;
-      cursor: pointer;
-      margin-top: 5px;
-      font-size: 14px;
-    }
-    .thought-content {
-      background-color: #2a2a2a;
-      padding: 10px;
-      margin-top: 5px;
-      border-radius: 10px;
-      display: none;
-      font-size: 13px;
-      color: #CCCCCC;
-    }
+    /* Modal Styles */
+    .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: rgba(0,0,0,0.6); }
+    .modal-content { background-color: #2A2A2A; margin: 15% auto; padding: 20px; border-radius: 8px; width: 80%; max-width: 600px; color: #F1F1F1; }
+    .modal-content textarea { width: 100%; height: 300px; background: #444; color: #FFF; border: 1px solid #666; padding: 10px; border-radius: 5px; }
+    .modal-content button { margin-top: 10px; padding: 10px; background: #D09B56; color: #000; border: none; border-radius: 5px; cursor: pointer; }
+    .modal-content button:hover { background: #B88244; }
   </style>
+  <!-- Embed default prompts from chat_agent.py -->
+  <script>
+    const prompts = {
+      wise: `{{ default_wise_prompt | safe }}`,
+      scribe: `{{ default_scribe_prompt | safe }}`
+    };
+  </script>
   <!-- Include Typed.js from CDN for typewriter effect -->
   <script src="https://cdn.jsdelivr.net/npm/typed.js@2.0.12"></script>
 </head>
@@ -203,6 +126,32 @@
     </div>
   </div>
   
+  <!-- Agent Type Selector -->
+  <div class="agent-selector">
+    <!-- Collapsed view: shows only the selected agent name with arrow -->
+    <div class="agent-selected" id="agent-selected">
+      <span id="selected-agent-name">Alexandria the Wise</span>
+      <span class="dropdown-arrow">&#9662;</span>
+    </div>
+    <!-- Expanded dropdown view -->
+    <div class="agent-dropdown" id="agent-dropdown">
+      <div class="agent-option" data-agent="wise">
+        <div class="agent-info">
+          <span class="agent-title">Alexandria the Wise</span>
+          <span class="agent-desc">Ask questions and get answers!</span>
+        </div>
+        <span class="see-details">See Details</span>
+      </div>
+      <div class="agent-option" data-agent="scribe">
+        <div class="agent-info">
+          <span class="agent-title">Alexandria the Scribe</span>
+          <span class="agent-desc">Rewrite documents easily!</span>
+        </div>
+        <span class="see-details">See Details</span>
+      </div>
+    </div>
+  </div>
+  
   <!-- Main Chat Area -->
   <div class="main-content">
     <div class="chat-wrapper">
@@ -213,35 +162,124 @@
     </div>
   </div>
   
+  <!-- Modal for Agent Prompt Details -->
+  <div id="agent-modal" class="modal">
+    <div class="modal-content">
+      <h2 id="modal-agent-name"></h2>
+      <p id="modal-agent-desc"></p>
+      <textarea id="modal-prompt"></textarea>
+      <button id="save-prompt">Save Changes</button>
+      <button id="close-modal">Close</button>
+    </div>
+  </div>
+  
   <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
   <script>
+    let currentAgentType = "wise";
+
+    // Function to update agent on the server
+    function updateAgent() {
+      $.ajax({
+        url: "/update_agent",
+        type: "POST",
+        data: { 
+          agent_type: currentAgentType, 
+          prompt: prompts[currentAgentType] 
+        },
+        success: function(data) {
+          console.log("Agent updated:", data.message);
+        },
+        error: function(jqXHR, textStatus, errorThrown) {
+          alert("Error updating agent type: " + errorThrown);
+        }
+      });
+    }
+
+    // Toggle dropdown visibility on click of selected agent display
+    $("#agent-selected").on("click", function() {
+      $("#agent-dropdown").toggle();
+    });
+
+    // When an option is clicked, update the selected agent and call updateAgent()
+    $(".agent-option").on("click", function() {
+      const agent = $(this).data("agent");
+      currentAgentType = agent;
+      const title = $(this).find(".agent-title").text();
+      $("#selected-agent-name").text(title);
+      $("#agent-dropdown").hide();
+      updateAgent();
+    });
+
+    // Show modal when "See Details" is clicked.
+    $(".see-details").on("click", function(e) {
+      e.stopPropagation();
+      updateModalContent();
+      $("#agent-modal").show();
+    });
+
+    function updateModalContent() {
+      if(currentAgentType === "wise") {
+        $("#modal-agent-name").text("Alexandria the Wise");
+        $("#modal-agent-desc").text("Ask questions and get answers!");
+        $("#modal-prompt").val(prompts.wise);
+      } else {
+        $("#modal-agent-name").text("Alexandria the Scribe");
+        $("#modal-agent-desc").text("Rewrite documents easily!");
+        $("#modal-prompt").val(prompts.scribe);
+      }
+    }
+
+    // Close modal.
+    $("#close-modal").on("click", function() {
+      $("#agent-modal").hide();
+    });
+
+    // Save prompt changes from modal.
+    $("#save-prompt").on("click", function() {
+      let newPrompt = $("#modal-prompt").val();
+      prompts[currentAgentType] = newPrompt;
+      $.ajax({
+        url: "/update_agent",
+        type: "POST",
+        data: { 
+          agent_type: currentAgentType, 
+          prompt: newPrompt 
+        },
+        success: function(data) {
+          alert("Agent prompt updated.");
+          $("#agent-modal").hide();
+        },
+        error: function(jqXHR, textStatus, errorThrown) {
+          alert("Error updating agent prompt: " + errorThrown);
+        }
+      });
+    });
+
+    // Chat functions remain unchanged.
     const messagesContainer = $("#messages");
     const messageInput = $("#message-input");
     let isWaiting = false;
     let thinkingInterval;
 
-    // Function to scroll the messages container to the bottom
     function autoScroll() {
       messagesContainer.animate({ scrollTop: messagesContainer.prop("scrollHeight") }, 500);
     }
 
-    // Typewriter effect for agent messages using Typed.js (faster, inline)
     function typeAgentMessage(element, text, callback) {
-      element.html(""); // Clear any previous content
+      element.html("");
       const typedSpan = $("<span class='typed-text'></span>");
       element.append(typedSpan);
       new Typed(typedSpan[0], {
         strings: [text],
-        typeSpeed: 3,         // Faster typing: 7ms per character
-        showCursor: false,    // Remove the flashing cursor after finish
+        typeSpeed: 3,
+        showCursor: false,
         contentType: 'html',
         onComplete: function() {
-          if (callback) callback();
+          if(callback) callback();
         }
       });
     }
 
-    // Thinking Indicator with fadeIn effect
     function startThinkingIndicator() {
       let indicator = $("<div class='thinking-indicator'>Alexandria is thinking</div>").hide();
       messagesContainer.append(indicator);
@@ -257,15 +295,13 @@
       $(".thinking-indicator").remove();
     }
 
-    // Toggle for Thought Process
     function toggleThoughtProcess(toggleElement) {
       const content = toggleElement.next(".thought-content");
       content.slideToggle(autoScroll);
     }
 
-    // Send Message on Enter (Shift+Enter for new line)
     messageInput.on("keypress", function(e) {
-      if (e.which === 13 && !e.shiftKey && !isWaiting) {
+      if(e.which === 13 && !e.shiftKey && !isWaiting) {
         e.preventDefault();
         sendMessage();
       }
@@ -273,9 +309,8 @@
 
     function sendMessage() {
       const message = messageInput.val().trim();
-      if (!message) return;
+      if(!message) return;
       
-      // Append User Message (container right-aligned, text inside left-aligned)
       const userMsg = $("<div class='message user-message'></div>").text(message);
       messagesContainer.append(userMsg);
       autoScroll();
@@ -289,34 +324,29 @@
       $.post("/chat_api", { message: message }, function(data) {
         stopThinkingIndicator();
         let agentOutput = data.response;
-
-        // Extract <think>...</think> block if present
+    
         let thoughtProcess = "";
         const thinkRegex = /<think>([\s\S]*?)<\/think>/i;
         const match = agentOutput.match(thinkRegex);
-        if (match) {
+        if(match) {
           thoughtProcess = match[1].trim();
           agentOutput = agentOutput.replace(thinkRegex, "").trim();
         }
-        
-        // Remove any leading asterisks
+    
         agentOutput = agentOutput.replace(/^\*+/, "").trim();
-
-        // Append Agent Message container for typewriter effect
+    
         const agentMsg = $("<div class='message agent-message'></div>");
         messagesContainer.append(agentMsg);
         autoScroll();
-        
-        // Animate the agent's response inline with the typewriter effect
+    
         typeAgentMessage(agentMsg, agentOutput, function() {
           messageInput.prop("disabled", false);
           messageInput.focus();
           isWaiting = false;
           autoScroll();
         });
-        
-        // If there's a thought process, add a collapsible section
-        if (thoughtProcess) {
+    
+        if(thoughtProcess) {
           const thoughtToggle = $("<div class='thought-toggle'>See my thought process</div>");
           const thoughtContent = $("<div class='thought-content'></div>").html(thoughtProcess);
           thoughtToggle.on("click", function() {

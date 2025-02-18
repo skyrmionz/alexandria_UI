@@ -4,9 +4,10 @@ FROM python:3.9-slim
 # Set the working directory
 WORKDIR /app
 
-# Install system dependencies
+# Install system dependencies including Tesseract OCR
 RUN apt-get update && apt-get install -y \
     build-essential \
+    tesseract-ocr \
     && rm -rf /var/lib/apt/lists/*
 
 # Install Docker CLI (if needed for Docker-in-Docker scenarios)

@@ -26,11 +26,14 @@ services:
     container_name: chat_app
     ports:
       - "5000:5000"
+      - "8080:8080"
+    env_file:
+      - .env
     environment:
       - QDRANT_HOST=qdrant
       - QDRANT_PORT=6333
-      # Update the Ollama URL to use the new RunPod DNS name
-      - OLLAMA_URL=https://cjalmexcy9f8qs-11434.proxy.runpod.net/
+      # Update the Ollama URL in .env to use the new RunPod DNS name
+      - OLLAMA_URL=https://${POD_ID}-11434.proxy.runpod.net/
     depends_on:
       - qdrant
       #- ollama
