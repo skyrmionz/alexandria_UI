@@ -61,7 +61,7 @@ def list_drive_files(service, folder_id=None):
 def list_files_recursive(service, folder_id):
     """
     Recursively lists files in a folder and its subfolders.
-    Returns a flat list of files (non-folder items).
+    Returns a flat list of non-folder files.
     """
     files = list_drive_files(service, folder_id)
     all_files = []
@@ -75,19 +75,18 @@ def list_files_recursive(service, folder_id):
     return all_files
 
 def download_file(service, file_id, mime_type):
+    """
+    Downloads a file. For native Google files (Docs, Sheets, etc.), use export_media
+    with an appropriate mime type. For images and other files, use get_media.
+    """
     try:
         if mime_type == "application/vnd.google-apps.spreadsheet":
-            # Try exporting as CSV first
-            try:
-                request = service.files().export_media(fileId=file_id, mimeType="text/csv")
-            except Exception as e:
-                print(f"Export as CSV failed for file {file_id}, trying get_media. Error: {e}")
-                request = service.files().get_media(fileId=file_id)
+            request = service.files().export_media(fileId=file_id, mimeType="text/csv")
         elif mime_type.startswith("application/vnd.google-apps"):
             request = service.files().export_media(fileId=file_id, mimeType="text/plain")
         else:
             request = service.files().get_media(fileId=file_id)
-
+    
         fh = io.BytesIO()
         downloader = MediaIoBaseDownload(fh, request)
         done = False
@@ -106,6 +105,7 @@ def extract_text(file_stream, mime_type):
     Extracts text from the file stream.
     - For PDFs: uses PyPDF2.
     - For images: uses OCR via pytesseract.
+    - For Excel files: uses openpyxl to extract text.
     - For other files: decodes as text.
     """
     text = ""
@@ -125,8 +125,18 @@ def extract_text(file_stream, mime_type):
             except pytesseract.pytesseract.TesseractNotFoundError:
                 print("Error: Tesseract is not installed or not in PATH. Skipping image file.")
                 text = ""
+        elif mime_type == "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet":
+            # Handle Excel XLSX files using openpyxl
+            from openpyxl import load_workbook
+            wb = load_workbook(file_stream, data_only=True)
+            for sheet in wb.worksheets:
+                for row in sheet.iter_rows(values_only=True):
+                    for cell in row:
+                        if cell is not None:
+                            text += str(cell) + " "
+                    text += "\n"
         else:
-            # Use errors='replace' to avoid decode errors for non-UTF8 bytes
+            # Attempt to decode as text using UTF-8 (with replacement for errors)
             text = file_stream.read().decode('utf-8', errors='replace')
     except Exception as e:
         print(f"Error extracting text for mime type {mime_type}:")
@@ -139,14 +149,12 @@ def ingest_drive_files(folder_id=None, creds_data=None):
     downloads files (from a specified folder and its subfolders),
     vectorizes their content using HuggingFaceEmbeddings,
     and uploads them into Qdrant.
-    Supports PDFs, plain text, Google Docs, Google Sheets, and images.
+    Supports PDFs, plain text, Google Docs, Google Sheets, Excel files, and images.
     """
-    # Prevent ingesting entire drive if no folder ID is provided.
     if not folder_id:
         print("No folder ID provided. Please provide a valid folder ID to ingest files from a specific folder.")
         return
 
-    # Build the Drive service using provided credentials if available.
     try:
         if creds_data:
             creds = Credentials.from_authorized_user_info(info=creds_data, scopes=SCOPES)
@@ -161,7 +169,6 @@ def ingest_drive_files(folder_id=None, creds_data=None):
         traceback.print_exc()
         return
 
-    # Recursively list files within the specified folder.
     try:
         files = list_files_recursive(drive_service, folder_id)
     except Exception as e:
@@ -172,7 +179,6 @@ def ingest_drive_files(folder_id=None, creds_data=None):
         print("No files found.")
         return
 
-    # Setup Qdrant connection and collection using environment variables.
     try:
         qdrant_client = QdrantClient(
             host=os.environ.get("QDRANT_HOST", "localhost"),
@@ -191,7 +197,6 @@ def ingest_drive_files(folder_id=None, creds_data=None):
         traceback.print_exc()
         return
 
-    # Initialize embeddings model.
     try:
         embeddings = HuggingFaceEmbeddings(model_name="intfloat/multilingual-e5-large")
     except Exception as e:
@@ -199,7 +204,6 @@ def ingest_drive_files(folder_id=None, creds_data=None):
         traceback.print_exc()
         return
 
-    # Process and ingest each file.
     for file in files:
         print(f"Processing file: {file['name']} (ID: {file['id']}, Type: {file['mimeType']})")
         try:

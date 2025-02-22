@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Article View</title>
+  <style>
+    /* Base Reset */
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { 
+      background-color: #181818; 
+      color: #F1F1F1; 
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; 
+      display: flex; 
+      height: 100vh; 
+    }
+    
+    /* Sidebar (remains on the left) */
+    .sidebar { 
+      background-color: #222222; 
+      width: 220px; 
+      padding: 20px; 
+      display: flex; 
+      flex-direction: column; 
+      justify-content: space-between; 
+    }
+    .menu { 
+      list-style: none; 
+      margin-top: 40px; 
+      text-align: left; 
+    }
+    .menu li { margin-bottom: 15px; }
+    .menu li a { 
+      display: block; 
+      white-space: nowrap; 
+      text-decoration: none; 
+      font-size: 16px; 
+      font-weight: bold; 
+      color: #FFFFFF; 
+      padding: 10px; 
+      border-radius: 10px; 
+      transition: background 0.3s, box-shadow 0.3s; 
+    }
+    .menu li.selected a { 
+      color: #D09B56; 
+      background-color: #4F4F4F; 
+      box-shadow: 0 0 20px #4F4F4F; 
+    }
+    .sidebar-bottom { text-align: center; }
+    .sidebar-bottom img { 
+      max-width: 100%; 
+      height: auto; 
+      display: block; 
+      margin: 0 auto; 
+    }
+    
+    /* Main Content for Article View */
+    .main-content {
+      flex: 1;
+      padding: 40px;
+      overflow-y: auto;
+    }
+    
+    .article-header {
+      display: flex;
+      gap: 20px;
+      margin-bottom: 30px;
+    }
+    
+    .article-header button {
+      padding: 8px 16px;
+      background: #D09B56;
+      border: none;
+      border-radius: 5px;
+      color: #000;
+      font-weight: bold;
+      cursor: pointer;
+    }
+    
+    .article-header button:hover {
+      background: #B88244;
+    }
+    
+    .article-content {
+      max-width: 800px;
+      margin: 0 auto;
+      background: #2A2A2A;
+      padding: 40px;
+      border-radius: 8px;
+      box-shadow: 0 0 20px rgba(0,0,0,0.2);
+    }
+    
+    /* Typography */
+    .article-content h1 {
+      font-size: 32px;
+      margin-bottom: 10px;
+      color: #D09B56;
+    }
+    
+    .article-content h3 {
+      font-size: 24px;
+      margin: 30px 0 15px;
+      color: #D09B56;
+    }
+    
+    .article-content p {
+      font-size: 16px;
+      line-height: 1.6;
+      margin-bottom: 15px;
+    }
+    
+    .article-content #article-author {
+      color: #888;
+      font-style: italic;
+      margin-bottom: 30px;
+    }
+    
+    .article-content ul {
+      margin: 15px 0;
+      list-style-type: disc;
+      padding-left: 20px;
+    }
+    
+    .article-content li {
+      margin-bottom: 8px;
+      line-height: 1.4;
+    }
+    
+    .article-content b,
+    .article-content strong {
+      color: #D09B56;
+    }
+    
+    .article-content i,
+    .article-content em {
+      color: #888;
+    }
+    
+    /* Modal Styles */
+    .modal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0,0,0,0.8);
+      z-index: 1000;
+    }
+    
+    .modal-content {
+      position: relative;
+      background: #2A2A2A;
+      max-width: 800px;
+      margin: 40px auto;
+      padding: 30px;
+      border-radius: 8px;
+    }
+    
+    .modal-content input,
+    .modal-content textarea {
+      width: 100%;
+      padding: 8px;
+      margin: 8px 0 20px;
+      background: #444;
+      border: 1px solid #666;
+      border-radius: 4px;
+      color: #FFF;
+    }
+    
+    .modal-content textarea {
+      min-height: 300px;
+      font-family: monospace;
+    }
+    
+    .modal-content button {
+      padding: 8px 16px;
+      background: #D09B56;
+      border: none;
+      border-radius: 4px;
+      color: #000;
+      font-weight: bold;
+      margin-right: 10px;
+      cursor: pointer;
+    }
+    
+    .modal-content button:hover {
+      background: #B88244;
+    }
+  </style>
+</head>
+<body>
+  <!-- Sidebar -->
+  <div class="sidebar">
+    <ul class="menu">
+      <li><a href="/chat">Chat</a></li>
+      <li><a href="/files">File Management</a></li>
+      <li class="selected"><a href="/artifacts">Knowledge Artifacts</a></li>
+    </ul>
+    <div class="sidebar-bottom">
+      <img src="/static/images/alexandriaLogo.png" alt="Alexandria Logo">
+    </div>
+  </div>
+  
+  <!-- Main Content for Article View -->
+  <div class="main-content">
+    <div class="article-header">
+      <button id="back-button">&larr; Back</button>
+      <button id="edit-button">Edit</button>
+    </div>
+    <div class="article-content">
+      <h1 id="article-title">{{ article_data.title }}</h1>
+      <p id="article-author">Author: {{ article_data.author }}</p>
+      <div id="article-body">
+        {{ article_data.content | safe }}
+      </div>
+    </div>
+  </div>
+  
+  <!-- Edit Modal -->
+  <div id="edit-modal" class="modal">
+    <div class="modal-content">
+      <h2>Edit Article</h2>
+      <label for="edit-title">Title</label>
+      <input type="text" id="edit-title" style="width: 100%; margin-bottom: 10px;">
+      <label for="edit-author">Author</label>
+      <input type="text" id="edit-author" style="width: 100%; margin-bottom: 10px;">
+      <label for="edit-content">Content (HTML)</label>
+      <textarea id="edit-content" style="width: 100%; height: 300px;"></textarea>
+      <div style="margin-top: 10px;">
+        <button id="save-article">Save</button>
+        <button id="cancel-edit">Cancel</button>
+      </div>
+    </div>
+  </div>
+  
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <script>
+    // Use single quotes for JSON parsing, matching chat.html's approach
+    let articleData = JSON.parse('{{ article_data | tojson | safe }}');
+    
+    function renderArticle() {
+        // Add null checks and default values for article elements
+        $("#article-title").text(articleData?.title || 'Untitled');
+        $("#article-author").text("Author: " + (articleData?.author || 'Unknown'));
+        $("#article-body").html(articleData?.content || '');
+    }
+
+    $(document).ready(function() {
+      renderArticle();
+      
+      // Back button: go back to artifacts list
+      $("#back-button").on("click", function() {
+        window.location.href = "/artifacts";
+      });
+      
+      // Edit button: open modal with current article data
+      $("#edit-button").on("click", function() {
+        $("#edit-title").val(articleData.title);
+        $("#edit-author").val(articleData.author);
+        $("#edit-content").val(articleData.content);
+        $("#edit-modal").show();
+      });
+      
+      $("#cancel-edit").on("click", function() {
+        $("#edit-modal").hide();
+      });
+      
+      $("#save-article").on("click", function() {
+        const updatedData = {
+          title: $("#edit-title").val(),
+          author: $("#edit-author").val(),
+          content: $("#edit-content").val()
+        };
+        
+        // Send AJAX request to save changes
+        $.ajax({
+          url: `/artifacts/${articleData.id}/update`,
+          method: 'POST',
+          contentType: 'application/json',
+          data: JSON.stringify(updatedData),
+          success: function(response) {
+            articleData = response;
+            renderArticle();
+            $("#edit-modal").hide();
+          },
+          error: function(xhr, status, error) {
+            alert('Failed to save changes. Please try again.');
+            console.error('Error:', error);
+          }
+        });
+      });
+    });
+  </script>
+</body>
+</html>
