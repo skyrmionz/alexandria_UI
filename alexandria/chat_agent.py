@@ -160,7 +160,7 @@ def initialize_agent():
         tools=tools,
         verbose=True,
         handle_parsing_errors=True,
-        max_iterations=200,
+        max_iterations=10,
         max_execution_time=120,
     )
     return agent_executor

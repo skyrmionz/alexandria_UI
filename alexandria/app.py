@@ -66,11 +66,21 @@ def chat_page():
 def files_page():
     valid_creds = False
     user_email = None
+    
     if "credentials" in session:
         creds_data = session.get("credentials")
-        if creds_data.get("refresh_token") and creds_data.get("token"):
-            valid_creds = True
-            user_email = session.get("user_email", "Unknown")
+        if creds_data and isinstance(creds_data, dict):
+            if creds_data.get("refresh_token") and creds_data.get("token"):
+                try:
+                    # Additional validation could be done here if needed
+                    valid_creds = True
+                    user_email = session.get("user_email", "Unknown")
+                except Exception as e:
+                    print(f"Error validating credentials: {str(e)}")
+                    # Clear invalid credentials
+                    session.pop("credentials", None)
+                    session.pop("user_email", None)
+    
     return render_template("files.html", valid_creds=valid_creds, user_email=user_email)
 
 @app.route("/artifacts")

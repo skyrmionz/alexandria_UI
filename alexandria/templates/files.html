@@ -131,6 +131,39 @@
       width: 100%;
       font-weight: bold;
     }
+    
+    /* Auth Section Styles */
+    .auth-section {
+      margin-bottom: 30px;
+      padding: 20px;
+      background: #2A2A2A;
+      border-radius: 8px;
+    }
+    
+    .auth-section h2 {
+      color: #D09B56;
+      margin-bottom: 15px;
+    }
+    
+    #auth-status {
+      margin-bottom: 15px;
+      color: #F1F1F1;
+    }
+    
+    .auth-button {
+      display: inline-block;
+      padding: 10px 20px;
+      background-color: #D09B56;
+      color: #000;
+      text-decoration: none;
+      border-radius: 5px;
+      font-weight: bold;
+      transition: background-color 0.3s;
+    }
+    
+    .auth-button:hover {
+      background-color: #B88244;
+    }
   </style>
 </head>
 <body>
@@ -149,6 +182,13 @@
   <!-- Main Content -->
   <div class="main-content">
     <div class="container">
+      <h1>File Management</h1>
+      <div class="auth-section">
+        <h2>Google Drive Integration</h2>
+        <p id="auth-status">{{ "Connected as: " + user_email if valid_creds else "Not connected to Google Drive" }}</p>
+        <a href="/start_auth" class="auth-button">{{ "Reauthenticate" if valid_creds else "Connect to Google Drive" }}</a>
+      </div>
+      
       <!-- Google Drive Connection Section -->
       <div class="drive-connection">
         <form id="drive-auth-form">
