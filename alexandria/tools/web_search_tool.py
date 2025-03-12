@@ -1,31 +1,34 @@
 # tools/web_search_tool.py
 
+import os
+from typing import Optional
 from duckduckgo_search import DDGS
 
-def web_search_tool(query: str) -> str:
+def web_search_tool(query: str, num_results: int = 3) -> str:
     """
-    Perform a web search using DuckDuckGo via the DDGS class.
-
+    Search the web for information using DuckDuckGo.
+    
     Args:
-        query (str): The search query.
-
+        query: The search query
+        num_results: Number of results to return (default: 3)
+        
     Returns:
-        str: A formatted string with the top search results.
+        A string containing the search results
     """
     try:
-        # Use the DDGS context manager as shown in the Medium article.
         with DDGS() as ddgs:
-            # Perform a text search; you can customize parameters as needed.
-            results = ddgs.text(query, max_results=3)
-        
-        if results:
-            # Format each result with its title and URL.
-            formatted_results = "\n".join(
-                f"{result.get('title', 'No title')}: {result.get('href', 'No URL')}"
-                for result in results
-            )
-            return formatted_results
-        else:
-            return "No results found."
+            results = ddgs.text(query, max_results=num_results)
+            
+            if not results:
+                return "No results found for your query."
+            
+            formatted_results = []
+            for i, r in enumerate(results, 1):
+                title = r.get('title', 'No title')
+                body = r.get('body', 'No content')
+                href = r.get('href', 'No link')
+                formatted_results.append(f"{i}. {title}\n   {body}\n   Source: {href}\n")
+            
+            return "Web Search Results:\n\n" + "\n".join(formatted_results)
     except Exception as e:
-        return f"An error occurred while searching: {str(e)}"
+        return f"Error performing web search: {str(e)}"

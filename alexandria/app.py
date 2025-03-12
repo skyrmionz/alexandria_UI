@@ -1,7 +1,9 @@
 import os
 import json
 import datetime
+
 os.environ['OAUTHLIB_INSECURE_TRANSPORT'] = '1'
+
 from flask import Flask, request, render_template, jsonify, session, redirect, url_for
 from chat_agent import get_agent_response, update_agent, DEFAULT_WISE_PROMPT, DEFAULT_SCRIBE_PROMPT, compiled_workflow
 from file_processor import process_uploaded_file
@@ -16,11 +18,8 @@ app = Flask(__name__)
 app.secret_key = os.getenv("FLASK_SECRET_KEY", "your-secret-key")
 
 load_dotenv()
-pod_id = os.getenv("POD_ID")
 
 # Qdrant configuration
-OLLAMA_HOST = os.environ.get("OLLAMA_HOST", f"https://{pod_id}-11434.proxy.runpod.net/")
-OLLAMA_PORT = int(os.environ.get("OLLAMA_PORT", 11434))
 QDRANT_HOST = os.environ.get("QDRANT_HOST", "localhost")
 QDRANT_PORT = int(os.environ.get("QDRANT_PORT", 6333))
 COLLECTION_NAME = "google_drive_docs"
@@ -28,8 +27,10 @@ COLLECTION_NAME = "google_drive_docs"
 # Initialize Qdrant client
 try:
     qdrant_client = QdrantClient(host=QDRANT_HOST, port=QDRANT_PORT)
+    print(f"Successfully connected to Qdrant at {QDRANT_HOST}:{QDRANT_PORT}")
 except Exception as e:
     print(f"Error connecting to Qdrant: {e}")
+    print("Running in limited mode without knowledge base functionality.")
     qdrant_client = None
 
 # Define Google Drive OAuth scope
@@ -179,43 +180,50 @@ def chat_api():
         })
         
         if qdrant_client is None:
-            return jsonify({"error": "Knowledge base is not available"}), 503
+            # Provide a fallback response when Qdrant is not available
+            fallback_response = "I'm currently running in limited mode without access to the knowledge base. I can still help with general questions, calculations, and web searches."
             
-        # Convert serialized messages back to LangChain format for the workflow
-        langchain_messages = [
-            HumanMessage(content=msg["content"]) if msg["type"] == "human"
-            else AIMessage(content=msg["content"])
-            for msg in conversation_state["messages"]
-        ]
-        
-        result = compiled_workflow.invoke(
-            {"messages": langchain_messages},
-            config={
-                "thread_id": str(uuid4()),
-                "checkpoint_id": str(uuid4()),
-                "checkpoint_ns": "alexandria_chat"
-            }
-        )
-        
-        if not result or "messages" not in result:
-            return jsonify({"error": "Invalid response from language model"}), 500
+            # Add the response to the conversation state
+            conversation_state["messages"].append({
+                "type": "ai",
+                "content": fallback_response
+            })
             
-        # Store the result back in serializable format
-        conversation_state["messages"] = [
-            {
-                "type": "human" if isinstance(msg, HumanMessage) else "ai",
-                "content": msg.content
-            }
-            for msg in result["messages"]
-        ]
+            # Save the updated conversation state
+            session["conversation_state"] = conversation_state
+            
+            return jsonify({"response": fallback_response})
+        
+        # Format the conversation history for get_agent_response
+        chat_history = ""
+        for msg in conversation_state["messages"][:-1]:  # Exclude the current message
+            prefix = "Human: " if msg["type"] == "human" else "AI: "
+            chat_history += prefix + msg["content"] + "\n"
+        
+        print(f"Sending message to agent: {message}")
+        print(f"Chat history length: {len(chat_history)}")
+        
+        # Use get_agent_response with both message and chat_history parameters
+        response_data = get_agent_response(message, chat_history, agent_type="wise")
+        
+        # Extract the response text from the dictionary
+        response_text = response_data.get("response", "I'm sorry, I couldn't generate a response.")
+        
+        # Add the response to the conversation state
+        conversation_state["messages"].append({
+            "type": "ai",
+            "content": response_text
+        })
+        
+        # Save the updated conversation state
         session["conversation_state"] = conversation_state
         
-        # Get the last AI message for the response
-        assistant_message = result["messages"][-1].content if result["messages"] else ""
-        return jsonify({"response": assistant_message})
+        return jsonify({"response": response_text})
         
     except Exception as e:
         print(f"Chat processing error: {str(e)}")  # Log the error
+        import traceback
+        traceback.print_exc()
         return jsonify({
             "error": "An error occurred while processing your request",
             "details": str(e)
