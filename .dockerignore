@@ -28,4 +28,7 @@ ENV/
 *.log
 qdrant_storage/
 models/
-
+.git/
+.gitignore
+LICENSE
+README.md
