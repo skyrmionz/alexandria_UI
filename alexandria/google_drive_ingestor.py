@@ -12,7 +12,7 @@ from googleapiclient.http import MediaIoBaseDownload
 from qdrant_client import QdrantClient
 from qdrant_client.http.models import Distance, VectorParams
 
-from langchain.embeddings import HuggingFaceEmbeddings
+from langchain_community.embeddings import HuggingFaceEmbeddings
 
 # Additional imports for file processing
 from PyPDF2 import PdfReader

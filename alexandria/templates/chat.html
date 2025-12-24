@@ -60,6 +60,7 @@
       left: 240px;
       width: 300px;
       user-select: none;
+      z-index: 1000; /* Add z-index to ensure it appears above other content */
     }
     .agent-selected {
       background-color: #222222;
@@ -69,26 +70,49 @@
       display: flex;
       align-items: center;
       justify-content: space-between;
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+      border: 1px solid #3a3a3a;
     }
     .agent-selected span { font-size: 16px; font-weight: bold; }
+    .agent-selected .demo-indicator {
+      display: inline-block;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background-color: #D09B56;
+      margin-left: 8px;
+    }
     .dropdown-arrow { font-size: 14px; }
     .agent-dropdown {
+      position: absolute; /* Ensure it's positioned in its own layer */
       display: none;
-      background-color: #222222;
+      background-color: #222222 !important; /* Force the background color */
       border-radius: 8px;
       margin-top: 5px;
       overflow: hidden;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 1);
+      border: 1px solid #333333;
+      z-index: 1000; /* Add z-index to ensure it appears above other content */
+      opacity: 1 !important; /* Force full opacity */
+      backdrop-filter: none; /* Remove any backdrop filters */
+      width: 100%; /* Ensure it spans the full width */
     }
     .agent-option {
+      position: relative; /* Ensure it's properly stacked */
       padding: 10px 15px;
       cursor: pointer;
       display: flex;
       justify-content: space-between;
       align-items: center;
       border-top: 1px solid #4F4F4F;
+      background-color: #222222 !important; /* Force the background color */
+      opacity: 1 !important; /* Force full opacity */
     }
     .agent-option:first-child { border-top: none; }
-    .agent-option:hover { background-color: #4F4F4F; }
+    .agent-option:hover { 
+      background-color: #333333; 
+      transition: background-color 0.2s ease;
+    }
     .agent-info { display: flex; flex-direction: column; }
     .agent-title { font-size: 16px; font-weight: bold; }
     .agent-desc { font-size: 14px; color: #929292; }
@@ -212,6 +236,41 @@
       color: #929292; 
     }
     
+    /* Thought process styling */
+    .thought-toggle {
+      font-size: 14px;
+      color: #929292;
+      background-color: #222222;
+      padding: 8px 12px;
+      border-radius: 8px;
+      margin-top: 10px;
+      margin-bottom: 10px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      align-self: flex-start;
+    }
+    .thought-toggle:hover {
+      background-color: #2a2a2a;
+    }
+    .thought-toggle .dropdown-icon {
+      margin-left: 6px;
+      transition: transform 0.3s ease;
+    }
+    .thought-toggle.expanded .dropdown-icon {
+      transform: rotate(180deg);
+    }
+    .thought-content {
+      background-color: #2a2a2a;
+      border-radius: 8px;
+      padding: 12px;
+      margin-bottom: 15px;
+      font-size: 14px;
+      color: #b0b0b0;
+      display: none;
+      white-space: pre-wrap;
+    }
+    
     #input-container { 
       width: 100%; 
       max-width: 900px; 
@@ -263,7 +322,7 @@
       <div class="agent-option" data-agent="wise">
         <div class="agent-info">
           <span class="agent-title">Alexandria the Wise</span>
-          <span class="agent-desc">Ask questions and get answers!</span>
+          <span class="agent-desc">Ask Alexandria to do anything!</span>
         </div>
       </div>
       <div class="agent-option" data-agent="scribe">
@@ -298,6 +357,27 @@
     let currentAgentType = "wise";
     $(document).ready(function() {
       
+      // Check if there's a stored agent type in a cookie or session
+      $.ajax({
+        url: "/get_current_agent",
+        type: "GET",
+        success: function(data) {
+          if (data.agent_type) {
+            console.log("Retrieved agent type from server:", data.agent_type);
+            currentAgentType = data.agent_type;
+            
+            // Update the UI to show the current agent
+            $(".agent-option").each(function() {
+              const agentType = $(this).data("agent");
+              if (agentType === currentAgentType) {
+                const title = $(this).find(".agent-title").text();
+                $("#selected-agent-name").text(title);
+              }
+            });
+          }
+        }
+      });
+      
       $("#agent-selected").on("click", function() {
         $("#agent-dropdown").toggle();
       });
@@ -307,8 +387,11 @@
         currentAgentType = agent;
         const title = $(this).find(".agent-title").text();
         $("#selected-agent-name").text(title);
+        
         $("#agent-dropdown").hide();
-        updateAgent(); 
+        
+        // Update the agent
+        updateAgent();
       });
       
       // Chat functionality (auto-scroll, typing, etc.)
@@ -360,6 +443,7 @@
       function toggleThoughtProcess(toggleElement) {
         const content = toggleElement.next(".thought-content");
         content.slideToggle(() => smoothAutoScroll());
+        toggleElement.toggleClass("expanded");
       }
       
       messageInput.on("keypress", function(e) {
@@ -388,106 +472,132 @@
         
         startThinkingIndicator();
         
-        $.post("/chat_api", { message: message }, function(data) {
-          stopThinkingIndicator();
-          let agentOutput = data.response;
-          let thoughtProcess = "";
-          const thinkRegex = /<think>([\s\S]*?)<\/think>/i;
-          const match = agentOutput.match(thinkRegex);
-          if (match) {
-            thoughtProcess = match[1].trim();
-            agentOutput = agentOutput.replace(thinkRegex, "").trim();
-          }
-          
-          // Check for artifact creation request
-          const artifactRegex = /<create_artifact>([\s\S]*?)<\/create_artifact>/i;
-          const artifactMatch = agentOutput.match(artifactRegex);
-          if (artifactMatch) {
-            try {
-              console.log("Found artifact creation request in agent output");
-              const artifactData = JSON.parse(artifactMatch[1]);
-              console.log("Parsed artifact data:", artifactData);
-              
-              if (!artifactData.title || !artifactData.author || !artifactData.content) {
-                console.error("Missing required fields in artifact data:", artifactData);
-                agentOutput = "I encountered an error while creating the artifact. The data is missing required fields.";
-                displayAgentResponse();
-                return;
-              }
-              
-              $.ajax({
-                url: "/create_artifact",
-                type: "POST",
-                contentType: "application/json",
-                data: JSON.stringify(artifactData),
-                success: function(response) {
-                  console.log("Successfully created artifact:", response);
-                  // Remove the create_artifact block and add a link
-                  agentOutput = agentOutput.replace(artifactRegex, "").trim();
-                  agentOutput += `\n\n✨ Perfect! I've created a new artifact for you. <a href="/article?id=${response.artifact_id}" target="_blank">Click here to view it</a> or find it in the Knowledge Artifacts section.`;
+        $.ajax({
+          url: "/chat_api",
+          type: "POST",
+          contentType: "application/json",
+          data: JSON.stringify({ 
+            message: message,
+            agent_type: currentAgentType // Include current agent type with every message
+          }),
+          success: function(data) {
+            stopThinkingIndicator();
+            let agentOutput = data.response;
+            let thoughtProcess = "";
+            const thinkRegex = /<think>([\s\S]*?)<\/think>/i;
+            const match = agentOutput.match(thinkRegex);
+            if (match) {
+              thoughtProcess = match[1].trim();
+              agentOutput = agentOutput.replace(thinkRegex, "").trim();
+            }
+            
+            // Check for artifact creation request
+            const artifactRegex = /<create_artifact>([\s\S]*?)<\/create_artifact>/i;
+            const artifactMatch = agentOutput.match(artifactRegex);
+            if (artifactMatch) {
+              try {
+                console.log("Found artifact creation request in agent output");
+                const artifactData = JSON.parse(artifactMatch[1]);
+                console.log("Parsed artifact data:", artifactData);
+                
+                if (!artifactData.title || !artifactData.author || !artifactData.content) {
+                  console.error("Missing required fields in artifact data:", artifactData);
+                  agentOutput = "I encountered an error while creating the artifact. The data is missing required fields.";
                   displayAgentResponse();
-                },
-                error: function(xhr, status, error) {
-                  console.error("Failed to create artifact:", error);
-                  console.error("Server response:", xhr.responseText);
-                  agentOutput = "I encountered an error while creating the artifact. Please try again.";
-                  displayAgentResponse();
+                  return;
                 }
-              });
-            } catch (e) {
-              console.error("Error parsing artifact data:", e);
-              agentOutput = "I encountered an error while creating the artifact. The data format was invalid.";
+                
+                $.ajax({
+                  url: "/create_artifact",
+                  type: "POST",
+                  contentType: "application/json",
+                  data: JSON.stringify(artifactData),
+                  success: function(response) {
+                    console.log("Successfully created artifact:", response);
+                    // Remove the create_artifact block and add a link
+                    agentOutput = agentOutput.replace(artifactRegex, "").trim();
+                    agentOutput += `\n\n✨ Perfect! I've created a new artifact for you. <a href="/article?id=${response.artifact_id}" target="_blank">Click here to view it</a> or find it in the Knowledge Artifacts section.`;
+                    displayAgentResponse();
+                  },
+                  error: function(xhr, status, error) {
+                    console.error("Failed to create artifact:", error);
+                    console.error("Server response:", xhr.responseText);
+                    agentOutput = "I encountered an error while creating the artifact. Please try again.";
+                    displayAgentResponse();
+                  }
+                });
+              } catch (e) {
+                console.error("Error parsing artifact data:", e);
+                agentOutput = "I encountered an error while creating the artifact. The data format was invalid.";
+                displayAgentResponse();
+              }
+            } else {
               displayAgentResponse();
             }
-          } else {
-            displayAgentResponse();
-          }
-          
-          function displayAgentResponse() {
-            agentOutput = agentOutput.replace(/^\*+/, "").trim();
-            const agentMsg = $("<div class='message agent-message'></div>");
-            messagesContainer.append(agentMsg);
-            smoothAutoScroll();
-            typeAgentMessage(agentMsg, agentOutput, function() {
-              messageInput.prop("disabled", false);
-              messageInput.focus();
-              isWaiting = false;
+            
+            function displayAgentResponse() {
+              agentOutput = agentOutput.replace(/^\*+/, "").trim();
+              const agentMsg = $("<div class='message agent-message'></div>");
+              messagesContainer.append(agentMsg);
               smoothAutoScroll();
-            });
-            if (thoughtProcess) {
-              const thoughtToggle = $("<div class='thought-toggle'>See my thought process</div>");
-              const thoughtContent = $("<div class='thought-content'></div>").html(thoughtProcess);
-              thoughtToggle.on("click", function() {
-                toggleThoughtProcess($(this));
+              typeAgentMessage(agentMsg, agentOutput, function() {
+                messageInput.prop("disabled", false);
+                messageInput.focus();
+                isWaiting = false;
+                smoothAutoScroll();
               });
-              messagesContainer.append(thoughtToggle);
-              messagesContainer.append(thoughtContent);
-              smoothAutoScroll();
+              if (thoughtProcess) {
+                const thoughtToggle = $("<div class='thought-toggle'>See my thought process <span class='dropdown-icon'>&#9662;</span></div>");
+                const thoughtContent = $("<div class='thought-content'></div>").html(thoughtProcess);
+                thoughtToggle.on("click", function() {
+                  toggleThoughtProcess($(this));
+                });
+                messagesContainer.append(thoughtToggle);
+                messagesContainer.append(thoughtContent);
+                smoothAutoScroll();
+              }
             }
+          },
+          error: function() {
+            stopThinkingIndicator();
+            messagesContainer.append($("<div class='message agent-message'></div>").text("Error getting response."));
+            messageInput.prop("disabled", false);
+            messageInput.focus();
+            isWaiting = false;
+            smoothAutoScroll();
           }
-        }).fail(function() {
-          stopThinkingIndicator();
-          messagesContainer.append($("<div class='message agent-message'></div>").text("Error getting response."));
-          messageInput.prop("disabled", false);
-          messageInput.focus();
-          isWaiting = false;
-          smoothAutoScroll();
         });
       }
       
       function updateAgent() {
+        console.log("Updating agent to: " + currentAgentType);
+        
+        // Show a visual indicator that the agent is being updated
+        const agentName = $("#selected-agent-name").text();
+        $("#selected-agent-name").text("Switching to " + agentName + "...");
+        
         $.ajax({
           url: "/update_agent",
           type: "POST",
-          data: { 
+          contentType: "application/json",
+          data: JSON.stringify({ 
             agent_type: currentAgentType, 
             prompt: prompts[currentAgentType] 
-          },
+          }),
           success: function(data) {
-            console.log("Agent updated:", data.message);
+            console.log("Agent successfully updated:", data.message);
+            $("#selected-agent-name").text(agentName); // Restore the agent name
+            
+            // Display a message in the chat indicating the agent change
+            const agentMsg = $("<div class='message agent-message'></div>");
+            agentMsg.html(`<p>I've switched to <b>${agentName}</b> mode. How can I help you?</p>`);
+            messagesContainer.append(agentMsg);
+            smoothAutoScroll();
           },
           error: function(jqXHR, textStatus, errorThrown) {
+            console.error("Error updating agent:", errorThrown);
             alert("Error updating agent type: " + errorThrown);
+            $("#selected-agent-name").text(agentName); // Restore the agent name
           }
         });
       }

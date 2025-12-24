@@ -1,24 +1,32 @@
 # Use the official Python slim image
-FROM python:3.9-slim
+FROM python:3.11-slim
 
 # Set the working directory
 WORKDIR /app
 
-# Install system dependencies including Tesseract OCR
+# Install system dependencies
 RUN apt-get update && apt-get install -y \
     build-essential \
-    tesseract-ocr \
     && rm -rf /var/lib/apt/lists/*
 
-# Install Docker CLI (if needed for Docker-in-Docker scenarios)
-# RUN apt-get install -y docker.io
+# List Python version and location
+RUN python --version && which python && which pip
 
-# Copy and install Python dependencies
+# Copy requirements and install them
 COPY requirements.txt .
-RUN pip install --upgrade pip && pip install -r requirements.txt
+RUN pip install --no-cache-dir --upgrade pip && \
+    pip install --no-cache-dir -r requirements.txt
 
-# Copy application code
+# Copy the rest of the application
 COPY . .
+
+# Set environment variables
+ENV PYTHONUNBUFFERED=1
+ENV AZURE_INFERENCE_ENDPOINT="https://models.inference.ai.azure.com"
+ENV AZURE_OPENAI_ENDPOINT="https://models.inference.ai.azure.com"
+ENV AZURE_OPENAI_MODEL="gpt-4"
+ENV AZURE_OPENAI_API_VERSION="2023-07-01-preview"
+ENV PYTHONPATH=/app
 
 # Expose the application port
 EXPOSE 5000

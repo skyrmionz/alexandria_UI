@@ -1,21 +1,52 @@
 import os
 import json
 import datetime
+import traceback
+from flask import Flask, request, render_template, jsonify, session, redirect, url_for, flash, send_from_directory
+from flask_cors import CORS
+import time
+import re
+import hashlib
+import humanize
+from dotenv import load_dotenv
+import uuid
 
 os.environ['OAUTHLIB_INSECURE_TRANSPORT'] = '1'
 
-from flask import Flask, request, render_template, jsonify, session, redirect, url_for
-from chat_agent import get_agent_response, update_agent, DEFAULT_WISE_PROMPT, DEFAULT_SCRIBE_PROMPT, compiled_workflow
+from chat_agent import get_agent_response, update_agent, DEFAULT_WISE_PROMPT, DEFAULT_SCRIBE_PROMPT, compiled_workflow, chat_with_agent, revise_document, simple_chat_with_agent
 from file_processor import process_uploaded_file
 from qdrant_client import QdrantClient
 from google_auth_oauthlib.flow import Flow
 from google_drive_ingestor import ingest_drive_files
 from langchain.schema import HumanMessage, AIMessage
-from dotenv import load_dotenv
 from uuid import uuid4
+
+# For knowledge search
+from tools.knowledge_base_tool import search_knowledge_base, search_documents
+
+# For logging
+import logging
+import structlog
+
+# Configure logging
+structlog.configure(
+    processors=[
+        structlog.processors.TimeStamper(fmt="iso"),
+        structlog.processors.format_exc_info,
+        structlog.processors.JSONRenderer()
+    ],
+    logger_factory=structlog.stdlib.LoggerFactory(),
+)
+
+logger = structlog.get_logger()
 
 app = Flask(__name__)
 app.secret_key = os.getenv("FLASK_SECRET_KEY", "your-secret-key")
+# Configure session to be permanent and last for 30 days
+app.config['PERMANENT_SESSION_LIFETIME'] = datetime.timedelta(days=30)
+app.config['SESSION_TYPE'] = 'filesystem'
+app.config['SESSION_PERMANENT'] = True
+CORS(app)
 
 load_dotenv()
 
@@ -47,6 +78,41 @@ conversation_state = {"messages": []}
 artifacts = {}
 next_artifact_id = 1
 
+# Load artifacts from JSON file if it exists
+def load_artifacts_from_json():
+    global artifacts, next_artifact_id
+    try:
+        artifacts_file = os.path.join(app.static_folder, 'artifacts', 'artifacts.json')
+        if os.path.exists(artifacts_file):
+            with open(artifacts_file, 'r') as f:
+                artifact_list = json.load(f)
+                for artifact in artifact_list:
+                    artifact_id = artifact.get('id')
+                    if artifact_id:
+                        artifacts[artifact_id] = artifact
+                        # Update next_artifact_id to be greater than any existing ID
+                        try:
+                            id_int = int(artifact_id)
+                            next_artifact_id = max(next_artifact_id, id_int + 1)
+                        except ValueError:
+                            pass
+            print(f"Loaded {len(artifacts)} artifacts from JSON file")
+    except Exception as e:
+        print(f"Error loading artifacts from JSON: {e}")
+
+# Load artifacts when the application starts
+load_artifacts_from_json()
+
+# Configuration
+API_MODELS = ["alexandria/research", "alexandria/scribe"]
+FILES_DIR = "static/files"
+KNOWLEDGE_DIR = "static/knowledge"
+ARTIFACTS_DIR = "static/artifacts"
+
+# Ensure directories exist
+for directory in [FILES_DIR, KNOWLEDGE_DIR, ARTIFACTS_DIR]:
+    os.makedirs(directory, exist_ok=True)
+
 # ---------------------------
 # Page Routes
 # ---------------------------
@@ -59,6 +125,14 @@ def home():
 def chat_page():
     # Clear the conversation state when starting a new chat
     session["conversation_state"] = {"messages": []}
+    
+    # Set default agent type if not already set
+    if "agent_type" not in session:
+        session["agent_type"] = "wise"
+        print(f"CHAT PAGE: Initialized session agent_type to 'wise'")
+    else:
+        print(f"CHAT PAGE: Existing agent_type in session: {session['agent_type']}")
+    
     return render_template("chat.html", 
                          default_wise_prompt=DEFAULT_WISE_PROMPT, 
                          default_scribe_prompt=DEFAULT_SCRIBE_PROMPT)
@@ -160,51 +234,72 @@ def oauth2callback():
 
 @app.route("/chat_api", methods=["POST"])
 def chat_api():
+    """
+    Process a chat message and return a response.
+    
+    JSON payload:
+    {
+        "message": "User's message",
+        "reset": true/false (optional),
+        "agent_type": "agent type" (optional)
+    }
+    """
+    data = request.get_json()
+    message = data.get("message", "").strip()
+    reset = data.get("reset", False)
+    
+    # Get agent_type from request if provided, otherwise from session
+    agent_type_from_request = data.get("agent_type")
+    
+    if not message:
+        return jsonify({"error": "No message provided"}), 400
+    
+    # Initialize session state if it doesn't exist
     if "conversation_state" not in session:
-        session["conversation_state"] = {"messages": []}
+        session["conversation_state"] = {
+            "messages": []
+        }
+    
+    # Reset conversation if requested
+    if reset:
+        session["conversation_state"] = {
+            "messages": []
+        }
+    
+    # Get the current conversation state
+    conversation_state = session["conversation_state"]
+    
+    # Add the user's message to the conversation state
+    conversation_state["messages"].append({
+        "type": "human",
+        "content": message
+    })
+    
+    # Prepare chat history for the agent
+    chat_history = ""
+    for msg in conversation_state["messages"]:
+        prefix = "Human: " if msg["type"] == "human" else "AI: "
+        chat_history += prefix + msg["content"] + "\n"
+    
+    # Use agent_type from request if provided, otherwise from session
+    if agent_type_from_request:
+        agent_type = agent_type_from_request
+        # Update session with the new agent_type
+        session["agent_type"] = agent_type
+        print(f"CHAT API: Using agent_type from request: {agent_type}")
+    else:
+        # Get the current agent type from the session
+        # Default to "wise" if not found
+        agent_type = session.get("agent_type", "wise")
+        print(f"CHAT API: Using agent_type from session: {agent_type}")
+    
+    print(f"CHAT API: Final agent_type being used: {agent_type}")
     
     try:
-        message = request.form.get("message", "")
-        if not message.strip():
-            return jsonify({"error": "Empty message"}), 400
-            
-        conversation_state = session["conversation_state"]
-        
-        if "messages" not in conversation_state:
-            conversation_state["messages"] = []
-        
-        # Store messages in a serializable format
-        conversation_state["messages"].append({
-            "type": "human",
-            "content": message
-        })
-        
-        if qdrant_client is None:
-            # Provide a fallback response when Qdrant is not available
-            fallback_response = "I'm currently running in limited mode without access to the knowledge base. I can still help with general questions, calculations, and web searches."
-            
-            # Add the response to the conversation state
-            conversation_state["messages"].append({
-                "type": "ai",
-                "content": fallback_response
-            })
-            
-            # Save the updated conversation state
-            session["conversation_state"] = conversation_state
-            
-            return jsonify({"response": fallback_response})
-        
-        # Format the conversation history for get_agent_response
-        chat_history = ""
-        for msg in conversation_state["messages"][:-1]:  # Exclude the current message
-            prefix = "Human: " if msg["type"] == "human" else "AI: "
-            chat_history += prefix + msg["content"] + "\n"
-        
-        print(f"Sending message to agent: {message}")
-        print(f"Chat history length: {len(chat_history)}")
-        
-        # Use get_agent_response with both message and chat_history parameters
-        response_data = get_agent_response(message, chat_history, agent_type="wise")
+        print(f"CHAT API: Using STANDARD agent: {agent_type}")
+        # Use the regular chat agent
+        response_data = chat_with_agent(message, chat_history, agent_type)
+        print(f"CHAT API: Got standard response, length: {len(str(response_data))}")
         
         # Extract the response text from the dictionary
         response_text = response_data.get("response", "I'm sorry, I couldn't generate a response.")
@@ -218,26 +313,40 @@ def chat_api():
         # Save the updated conversation state
         session["conversation_state"] = conversation_state
         
-        return jsonify({"response": response_text})
+        # Ensure the session is saved
+        session.modified = True
         
-    except Exception as e:
-        print(f"Chat processing error: {str(e)}")  # Log the error
-        import traceback
-        traceback.print_exc()
+        # Return the response
         return jsonify({
-            "error": "An error occurred while processing your request",
-            "details": str(e)
-        }), 500
+            "response": response_text
+        })
+    except Exception as e:
+        print(f"Chat processing error: {str(e)}")
+        traceback.print_exc()
+        return jsonify({"error": f"Failed to process chat: {str(e)}"}), 500
 
 @app.route("/update_agent", methods=["POST"])
 def update_agent_route():
-    agent_type = request.form.get("agent_type")
-    prompt = request.form.get("prompt")
+    data = request.get_json()
+    agent_type = data.get("agent_type")
+    prompt = data.get("prompt")
+    
+    print(f"UPDATING AGENT: Received request to change agent type to: {agent_type}")
+    
+    # Store the agent type in the session
+    session["agent_type"] = agent_type
+    print(f"UPDATING AGENT: Set session['agent_type'] to: {agent_type}")
+    
+    # Force-write the session to ensure it's saved
+    session.modified = True
+    
     try:
+        print(f"UPDATING AGENT: Calling update_agent() for {agent_type}")
         update_agent(agent_type, prompt)
+        
         # Clear the conversation state when changing agent type
         session["conversation_state"] = {"messages": []}
-        return jsonify({"message": "Agent updated successfully."})
+        return jsonify({"message": f"Agent updated successfully to {agent_type}."})
     except Exception as e:
         print(f"Error updating agent: {str(e)}")
         return jsonify({"message": f"Error updating agent: {str(e)}"}), 500
@@ -334,6 +443,46 @@ def create_artifact():
 def get_artifacts():
     print(f"Returning {len(artifacts)} artifacts")
     return jsonify({"artifacts": list(artifacts.values())})
+
+@app.route("/get_current_agent")
+def get_current_agent():
+    """Return the current agent type from the session."""
+    agent_type = session.get("agent_type", "wise")
+    print(f"GET CURRENT AGENT: Returning {agent_type} from session")
+    return jsonify({"agent_type": agent_type})
+
+# Update the revise_document route to work with the new multi-agent architecture
+@app.route('/api/revise-document', methods=['POST'])
+def revise_document_route():
+    """API endpoint to revise a document using the multi-agent architecture"""
+    try:
+        data = request.get_json()
+        document_query = data.get('document_query', '')
+        query = data.get('query', '')
+        message = data.get('message', '')
+        
+        # Create a message with the delegation format
+        delegated_message = f"""
+I need to revise a document. Here are the details:
+
+<delegate_document_revision>
+document_query: "{document_query}"
+revision_query: "{query}"
+</delegate_document_revision>
+
+{message}
+        """
+        
+        # Use the chat_with_agent function with the enhanced message
+        response = chat_with_agent(delegated_message, agent_type="wise")
+        
+        if response and isinstance(response, dict):
+            return jsonify(response)
+        else:
+            return jsonify({"error": "Invalid response from agent"}), 500
+    except Exception as e:
+        logger.exception(f"Error in revise_document API: {str(e)}")
+        return jsonify({"error": str(e)}), 500
 
 # ---------------------------
 # Run the App

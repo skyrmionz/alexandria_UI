@@ -2,6 +2,7 @@ Flask
 langchain
 langchain-community
 langchain-azure-ai
+langchain_huggingface
 qdrant-client
 PyPDF2
 Pillow
@@ -16,3 +17,8 @@ pandas
 unstructured
 openpyxl
 azure-ai-inference
+flask_cors
+humanize
+structlog
+python-dotenv
+requests

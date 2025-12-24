@@ -7,17 +7,8 @@ services:
     ports:
       - "6333:6333"
       - "6334:6334"
-
-#  ollama:
- #   build:
-  #    context: .
-   #   dockerfile: Dockerfile.ollama
-    # Update container name to the new Pod ID so the RunPod global network assigns the DNS: https://tepm2e161hnrjt-11434.runpod.net
-    #container_name: tepm2e161hnrjt
-    #ports:
-    # - "11434:11434"
-    #environment:
-    #  - OLLAMA_HOST=0.0.0.0
+    volumes:
+      - qdrant_data:/qdrant/storage
 
   app:
     build:
@@ -25,15 +16,14 @@ services:
       dockerfile: Dockerfile
     container_name: chat_app
     ports:
-      - "5000:5000"
-      - "8080:8080"
-    env_file:
-      - .env
+      - "5001:5000"
     environment:
       - QDRANT_HOST=qdrant
       - QDRANT_PORT=6333
-      # Update the Ollama URL in .env to use the new RunPod DNS name
-      - OLLAMA_URL=https://${POD_ID}-11434.proxy.runpod.net/
+      - OPENROUTER_API_KEY=${OPENROUTER_API_KEY}
+      - FLASK_SECRET_KEY=${FLASK_SECRET_KEY}
     depends_on:
       - qdrant
-      #- ollama
+
+volumes:
+  qdrant_data:

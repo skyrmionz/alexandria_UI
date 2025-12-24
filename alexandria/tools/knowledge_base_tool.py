@@ -1,6 +1,6 @@
 import os
 from qdrant_client import QdrantClient
-from langchain_community.embeddings import HuggingFaceEmbeddings
+from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_community.vectorstores import Qdrant
 
 # Qdrant configuration
@@ -48,7 +48,7 @@ except Exception as e:
     print(f"Error loading embeddings model: {e}")
     embeddings = None
 
-def knowledge_base_search_tool(query: str, search_type: str = "all") -> str:
+def search_knowledge_base(query: str, search_type: str = "all") -> str:
     """
     Search the Qdrant vector store for relevant content.
     
@@ -124,7 +124,7 @@ def search_artifacts(query: str) -> str:
     """
     if not qdrant_available or not embeddings:
         return "Artifact search is not available. The system is running in limited mode."
-    return knowledge_base_search_tool(query, search_type="artifacts")
+    return search_knowledge_base(query, search_type="artifacts")
 
 def search_documents(query: str) -> str:
     """
@@ -138,4 +138,4 @@ def search_documents(query: str) -> str:
     """
     if not qdrant_available or not embeddings:
         return "Document search is not available. The system is running in limited mode."
-    return knowledge_base_search_tool(query, search_type="documents")
+    return search_knowledge_base(query, search_type="documents")

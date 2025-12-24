@@ -8,7 +8,7 @@ from PIL import Image
 import pytesseract
 import pandas as pd
 from langchain.text_splitter import CharacterTextSplitter
-from langchain_community.embeddings import HuggingFaceEmbeddings
+from langchain_huggingface import HuggingFaceEmbeddings
 
 # Qdrant configuration
 QDRANT_HOST = os.environ.get("QDRANT_HOST", "localhost")
