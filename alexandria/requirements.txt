@@ -19,3 +19,5 @@ structlog
 python-dotenv
 requests
 openai
+unstructured
+pytesseract
