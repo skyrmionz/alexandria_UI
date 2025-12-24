@@ -1,12 +1,10 @@
 Flask
 langchain
 langchain-community
-langchain-azure-ai
 langchain_huggingface
 qdrant-client
 PyPDF2
 Pillow
-pytesseract
 sentence-transformers
 duckduckgo_search
 google-api-python-client
@@ -14,11 +12,10 @@ google-auth-httplib2
 google-auth-oauthlib
 langgraph>=0.0.20
 pandas
-unstructured
 openpyxl
-azure-ai-inference
 flask_cors
 humanize
 structlog
 python-dotenv
 requests
+openai
