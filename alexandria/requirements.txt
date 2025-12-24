@@ -20,3 +20,4 @@ python-dotenv
 requests
 openai
 pytesseract
+azure-core

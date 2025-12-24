@@ -8,7 +8,7 @@ import requests
 from typing import List, Optional, TypedDict, Literal, Dict, Any, TypeVar, Generic, Tuple, Union, get_args, get_origin
 from functools import lru_cache
 from dotenv import load_dotenv
-from azure.core.credentials import AzureKeyCredential
+# from azure.core.credentials import AzureKeyCredential
 from enum import Enum
 
 # LangChain & related imports
