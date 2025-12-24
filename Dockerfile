@@ -3,7 +3,8 @@ FROM python:3.11-slim
 WORKDIR /app
 
 # Install system dependencies including Tesseract OCR
-RUN apt-get update && apt-get install -y \
+# Added --no-install-recommends to reduce image size and install time
+RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     tesseract-ocr \
     libtesseract-dev \
@@ -13,9 +14,10 @@ RUN apt-get update && apt-get install -y \
 COPY alexandria/requirements.txt .
 
 # Upgrade pip and install requirements
-# Using --no-cache-dir to keep image size down
+# INCREASED TIMEOUT: The build is timing out during pip install.
+# We are increasing the default timeout to prevent this.
 RUN pip install --no-cache-dir --upgrade pip && \
-    pip install --no-cache-dir -r requirements.txt
+    pip install --no-cache-dir --default-timeout=1000 -r requirements.txt
 
 # Copy the alexandria application folder into /app
 COPY alexandria/ .
